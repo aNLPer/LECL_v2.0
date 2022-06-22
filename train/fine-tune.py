@@ -46,5 +46,5 @@ for epoch in range(EPOCH):
         enc = enc.to(device)
         output = model(**batch_encs[i])
         outputs.append(torch.mean(output.last_hidden_state, dim=1))
-    outputs = torch.stack([outputs], dim=0)
+    outputs = torch.stack(outputs, dim=0)
     print(outputs)
