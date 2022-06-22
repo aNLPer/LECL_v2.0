@@ -38,6 +38,7 @@ optimizer = optim.SGD(model.parameters(), lr=LR)
 
 for epoch in range(EPOCH):
     print("fine-tune start......")
+
     seq, label_ids = pretrain_data_loader(accu2case=accu2case,
                                           batch_size=BATCH_SIZE,
                                           label2index=lang.label2index,
@@ -71,17 +72,19 @@ for epoch in range(EPOCH):
             contra_hidden, classify_preds = model(input_ids=batch_enc_ids[i].to(device), attention_mask=batch_enc_atten_mask[i].to(device))
             contra_outputs.append(contra_hidden)
             classify_outputs.append(classify_preds)
-        # [posi_size, batch_size/posi_size, hidden_size]
+        # 2 * [batch_size/posi_size, hidden_size] -> [posi_size, batch_size/posi_size, hidden_size]
         contra_outputs = torch.stack(contra_outputs, dim=0)
         # [posi_size, batch_size/posi_size, label_size] -> [batch_size, label_size]
         classify_outputs = torch.cat(classify_outputs, dim=0)
         # [batch_size,]
-        label_ids = torch.tensor(label_ids * 2)
+        label_ids = torch.tensor(label_ids * 2).to(device)
 
         posi_pairs_dist, neg_pairs_dist = train_distloss_fun(contra_outputs, radius=M)
         classfy_loss = criterion(classify_outputs, label_ids)
 
         loss = posi_pairs_dist+neg_pairs_dist+classfy_loss
+
+        loss.backward()
 
         print(posi_pairs_dist, neg_pairs_dist)
 
