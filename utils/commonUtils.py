@@ -7,7 +7,6 @@ import torch
 import torch.nn.functional as F
 
 TEMPER = 1
-M = 1
 
 class Lang:
     # 语料库对象
@@ -195,7 +194,7 @@ def pretrain_data_loader(accu2case,
     if len(selected_accus) < batch_size / positive_size:
         bias = int(batch_size/positive_size-len(selected_accus))
         selected_accus.extend(np.random.choice(list(set(accus).difference(set(selected_accus))), size=bias, replace=False))
-    print(len(set(selected_accus)))
+    # print(len(set(selected_accus)))
     # 根据指控获取batch
     for accu in selected_accus:
         selected_cases = np.random.choice(accu2case[accu], size=positive_size, replace=False)
@@ -271,9 +270,8 @@ def train_cosloss_fun(out_1, out_2, out_3, label_rep):
 
     return loss_out1 + loss_out2 + loss_out3
 
-def train_distloss_fun(outputs):
+def train_distloss_fun(outputs, radius = 10):
     """
-
     :param outputs: [posi_size, batch_size/2, hidden_dim]
     :param label_rep:
     :param label:
@@ -290,13 +288,15 @@ def train_distloss_fun(outputs):
     # 负样本距离
     # [posi_size, batch_size/2, hidden_dim] -> [batch_size/2, posi_size,  hidden_dim]
     outputs = torch.transpose(outputs, dim0=0, dim1=1)
-    neg_pair_dist = 0
-    for i in range(0.5*batch_size-1):
-        for j in range(i+1, 0.5*batch_size):
+    neg_pairs_dist = 0
+    for i in range(int(0.5*batch_size)-1):
+        for j in range(i+1, int(0.5*batch_size)):
             # outputs[i] outputs[j]
             for k in range(posi_size):
                 dist = F.pairwise_distance(outputs[i][k], outputs[j])
                 zero = torch.zeros_like(dist)+0.00001
-                dist = dist.where(dist<M, zero)
-                neg_pair_dist += torch.sum(dist)
-    return posi_pairs_dist, neg_pair_dist
+                dist = dist.where(dist<radius, zero)
+                neg_pairs_dist += torch.sum(dist)
+
+    return posi_pairs_dist/(0.5*posi_size*(posi_size-1)), \
+           neg_pairs_dist/((0.5*batch_size*(batch_size-1))*posi_size**2)

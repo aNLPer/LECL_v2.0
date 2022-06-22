@@ -14,9 +14,10 @@ BATCH_SIZE = 72
 POSI_SIZE = 2
 SIM_ACCU_NUM = 4
 LR = 0.01
+M = 10
 
 # model = BertModel.from_pretrained("bert-base-chinese")
-model = BertForSequenceClassification.from_pretrained("Bert-base-chinese",
+model = BertForSequenceClassification.from_pretrained("bert-base-chinese",
                                                       num_labels = 112,
                                                       output_attentions = False,
                                                       output_hidden_states = True)
@@ -45,20 +46,20 @@ for epoch in range(EPOCH):
         batch_enc_ids.append(batch_enc["input_ids"])
         batch_enc_atten_mask.append(batch_enc["attention_mask"])
 
-    batch_enc_ids = torch.stack(batch_enc_ids, dim=0)
-    batch_enc_ids = batch_enc_ids.to(device)
-    batch_enc_atten_mask = torch.stack(batch_enc_atten_mask,dim=0)
-    batch_enc_atten_mask = batch_enc_atten_mask.to(device)
+    # batch_enc_ids = torch.stack(batch_enc_ids, dim=0)
+    # batch_enc_ids = batch_enc_ids.to(device)
+    # batch_enc_atten_mask = torch.stack(batch_enc_atten_mask,dim=0)
+    # batch_enc_atten_mask = batch_enc_atten_mask.to(device)
 
     with torch.no_grad():
         outputs = []
         for i in range(POSI_SIZE):
-            output = model(input_ids=batch_enc_ids[i], attention_mask=batch_enc_atten_mask[i])
-            outputs.append(torch.mean(output.last_hidden_state, dim=1))
+            output = model(input_ids=batch_enc_ids[i].to(device), attention_mask=batch_enc_atten_mask[i].to(device))
+            outputs.append(torch.mean(output.hidden_states[-1], dim=1))
         outputs = torch.stack(outputs, dim=0)
 
-        loss_dist = train_distloss_fun(outputs)
+        posi_pairs_dist, neg_pairs_dist = train_distloss_fun(outputs, radius=M)
 
-        loss_dist.backward()
+        print(posi_pairs_dist, neg_pairs_dist)
 
 
