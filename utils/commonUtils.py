@@ -1,10 +1,19 @@
 import re
+import random
 import math
 import json
 import numpy as np
 from transformers import BertTokenizer
 import torch
 import torch.nn.functional as F
+
+seed_val = 42
+
+random.seed(seed_val)
+np.random.seed(seed_val)
+torch.manual_seed(seed_val)
+torch.cuda.manual_seed_all(seed_val)
+
 
 TEMPER = 1
 
@@ -202,6 +211,7 @@ def pretrain_data_loader(accu2case,
         for i in range(positive_size):
             seq[i].append(selected_cases[i])
     label_ids = [label2index[label] for label in selected_accus]
+
     return seq, label_ids
 
 
