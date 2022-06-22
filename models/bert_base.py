@@ -28,7 +28,7 @@ class ContrasBert(nn.Module):
         # [batch_size, seq_length, hidden_size] -> [batch_size, hidden_size]
         hidden_state = torch.mean(outputs.last_hidden_state, dim=1)
         # [batch_size, hidden_size] -> [batch_size, hidden_size]
-        contra_hidden = self.contrasLinear(hidden_state)
+        contra_hidden = self.contraLinear(hidden_state)
         # [batch_size, hidden_size] -> [batch_size, label_size]
         classify_preds = self.classifyLinear(contra_hidden)
         # [batch_size, hidden_size]、[batch_size, label_size]
