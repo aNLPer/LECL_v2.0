@@ -241,9 +241,9 @@ if __name__=="__main__":
     # # # 将训练集中的文本转换成对应的索引
     # # print("start word to index")
     # id2acc, acc2id = getAccus(data_path)
-    # f = open("lang_data_train_preprocessed.pkl", "rb")
-    # lang = pickle.load(f)
-    # f.close()
+    f = open("lang_data_train_preprocessed.pkl", "rb")
+    lang = pickle.load(f)
+    f.close()
     # word2Index(os.path.join(BATH_DATA_PATH,"data_train_processed.txt"), lang, acc2id)
     # print("processing end")
     #
@@ -291,7 +291,14 @@ if __name__=="__main__":
     #     print(seq[0])
     #     print(seq[1])
     #     print("------------------xxxxx-------------------")
-    seq = commonUtils.pretrain_data_loader(accu2case=accu2case, batch_size=48, positive_size=2, sim_accu_num=4, category2accu=category2accu, accu2category=accu2category)
+    seq,label = commonUtils.pretrain_data_loader(accu2case=accu2case,
+                                           batch_size=48,
+                                           label2index=lang.label2index,
+                                           positive_size=2,
+                                           sim_accu_num=4,
+                                           category2accu=category2accu,
+                                           accu2category=accu2category)
+
     print(seq)
 
 
