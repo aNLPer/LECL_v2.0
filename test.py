@@ -26,4 +26,7 @@ s = ["2012年2月3日16时许，被告人杨某驾车行驶至昌邑市某某", 
 #                                     return_tensors='pt')
 a = torch.tensor([[1,2,3],[4,5,6]])
 b = torch.tensor([[1,2,3],[4,5,6]])
-print(torch.stack([a,b], dim=0))
+c = torch.stack([a,b], dim=0)
+print(c)
+for ci in c:
+    print(ci)
