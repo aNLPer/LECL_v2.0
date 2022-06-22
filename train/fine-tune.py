@@ -1,5 +1,5 @@
-from transformers import BertModel, BertTokenizer
-from utils.commonUtils import pretrain_data_loader
+from transformers import BertModel, BertTokenizer, BertForSequenceClassification
+from utils.commonUtils import pretrain_data_loader, train_distloss_fun
 from dataprepare.dataprepare import make_accu2case_dataset, load_classifiedAccus
 import torch
 import torch.optim as optim
@@ -15,7 +15,11 @@ POSI_SIZE = 2
 SIM_ACCU_NUM = 4
 LR = 0.01
 
-model = BertModel.from_pretrained("bert-base-chinese")
+# model = BertModel.from_pretrained("bert-base-chinese")
+model = BertForSequenceClassification.from_pretrained("Bert-base-chinese",
+                                                      num_labels = 112,
+                                                      output_attentions = False,
+                                                      output_hidden_states = True)
 model.to(device)
 
 optimizer = optim.SGD(model.parameters(), lr=LR)
@@ -45,10 +49,16 @@ for epoch in range(EPOCH):
     batch_enc_ids = batch_enc_ids.to(device)
     batch_enc_atten_mask = torch.stack(batch_enc_atten_mask,dim=0)
     batch_enc_atten_mask = batch_enc_atten_mask.to(device)
+
     with torch.no_grad():
         outputs = []
         for i in range(POSI_SIZE):
             output = model(input_ids=batch_enc_ids[i], attention_mask=batch_enc_atten_mask[i])
             outputs.append(torch.mean(output.last_hidden_state, dim=1))
         outputs = torch.stack(outputs, dim=0)
-        print(outputs)
+
+        loss_dist = train_distloss_fun(outputs)
+
+        loss_dist.backward()
+
+

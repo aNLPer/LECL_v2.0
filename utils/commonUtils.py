@@ -3,6 +3,11 @@ import math
 import json
 import numpy as np
 from transformers import BertTokenizer
+import torch
+import torch.nn.functional as F
+
+TEMPER = 1
+M = 1
 
 class Lang:
     # 语料库对象
@@ -190,7 +195,7 @@ def pretrain_data_loader(accu2case,
     if len(selected_accus) < batch_size / positive_size:
         bias = int(batch_size/positive_size-len(selected_accus))
         selected_accus.extend(np.random.choice(list(set(accus).difference(set(selected_accus))), size=bias, replace=False))
-
+    print(len(set(selected_accus)))
     # 根据指控获取batch
     for accu in selected_accus:
         selected_cases = np.random.choice(accu2case[accu], size=positive_size, replace=False)
@@ -200,19 +205,98 @@ def pretrain_data_loader(accu2case,
     return seq
 
 
-# 使用bert tokenize数据集
-def tokenize_with_bert(resourcefilename, targetfilename, lang):
-    tokenizer = BertTokenizer.from_pretrained("bert-base-chinese")
-    with open(resourcefilename, "r", encoding="utf-8") as f:
-        for line in f:
-            sample = json.loads(line)
-            sample_text = sample[0]
-            sample_label = sample[1]
-            encode_dict = tokenizer.encode_plus(
-                        sample_text,                      # Sentence to encode.
-                        add_special_tokens = False, # Add '[CLS]' and '[SEP]'
-                        max_length = 500,           # Pad & truncate all sentences.
-                        pad_to_max_length = True,
-                        return_attention_mask = True,   # Construct attn. masks.
-                        return_tensors = 'pt')     # Return pytorch tensors.
-            # input_ids.append(encoded_dict['input_ids'])
+def train_cosloss_fun(out_1, out_2, out_3, label_rep):
+    """
+    损失函数
+    :param out_1: tensor
+    :param out_2: tensor
+    :param out_3: tensor
+    :param label_rep tensor
+    :return: loss scalar
+    """
+    batch_size = out_1.shape[0]
+    # out_1 样本损失函数
+    loss_out1 = 0
+    for i in range(batch_size):
+        # [batch_size, d_model]
+        x = out_1[i].expand(batch_size, -1)
+        # [batch_size]
+        x_out1 = torch.cosine_similarity(x, out_1, dim=1)/TEMPER
+        # [batch_size]
+        x_out2 = torch.cosine_similarity(x, out_2, dim=1)/TEMPER
+        # [batch_size]
+        x_out3 = torch.cosine_similarity(x, out_3, dim=1)/TEMPER
+        # [batch_size]
+        x_label_rep = torch.cosine_similarity(x, label_rep, dim=1)/TEMPER
+
+        molecule = torch.sum(torch.tensor([torch.exp(x_out2[i]), torch.exp(x_out3[i]), torch.exp(x_label_rep[i])]))
+        denominator = torch.sum(torch.exp(x_out1[0:i])) - torch.exp(x_out1[i]) + torch.sum(torch.exp(x_out2)) + torch.sum(torch.exp(x_out3)) + torch.sum(torch.exp(x_label_rep))
+        loss_out1 -= torch.log(molecule/denominator)
+
+    # out_2 样本损失函数
+    loss_out2 = 0
+    for i in range(batch_size):
+        # [batch_size, d_model]
+        x = out_2[i].expand(batch_size, -1)
+        # [batch_size]
+        x_out1 = torch.cosine_similarity(x, out_1, dim=1) / TEMPER
+        # [batch_size]
+        x_out2 = torch.cosine_similarity(x, out_2, dim=1) / TEMPER
+        # [batch_size]
+        x_out3 = torch.cosine_similarity(x, out_3, dim=1) / TEMPER
+        # [batch_size]
+        x_label_rep = torch.cosine_similarity(x, label_rep, dim=1) / TEMPER
+
+        molecule = torch.sum(torch.tensor([torch.exp(x_out1[i]), torch.exp(x_out3[i]), torch.exp(x_label_rep[i])]))
+        denominator = torch.sum(torch.exp(x_out1)) + torch.sum(torch.exp(x_out2)) - torch.exp(x_out2[i]) + torch.sum(torch.exp(x_out3)) + torch.sum(torch.exp(x_label_rep))
+        loss_out2 -= torch.log(molecule / denominator)
+
+    # out_3 样本损失函数
+    loss_out3 = 0
+    for i in range(batch_size):
+        # [batch_size, d_model]
+        x = out_3[i].expand(batch_size, -1)
+        # [batch_size]
+        x_out1 = torch.cosine_similarity(x, out_1, dim=1) / TEMPER
+        # [batch_size]
+        x_out2 = torch.cosine_similarity(x, out_2, dim=1) / TEMPER
+        # [batch_size]
+        x_out3 = torch.cosine_similarity(x, out_3, dim=1) / TEMPER
+        # [batch_size]
+        x_label_rep = torch.cosine_similarity(x, label_rep, dim=1) / TEMPER
+
+        molecule = torch.sum(torch.tensor([torch.exp(x_out1[i]), torch.exp(x_out2[i]), torch.exp(x_label_rep[i])]))
+        denominator = torch.sum(torch.exp(x_out1)) + torch.sum(torch.exp(x_out2)) + torch.sum(torch.exp(x_out3)) - torch.exp(x_out3[i]) + torch.sum(torch.exp(x_label_rep))
+        loss_out3 -= torch.log(molecule / denominator)
+
+    return loss_out1 + loss_out2 + loss_out3
+
+def train_distloss_fun(outputs):
+    """
+
+    :param outputs: [posi_size, batch_size/2, hidden_dim]
+    :param label_rep:
+    :param label:
+    :return:
+    """
+    posi_size = outputs.shape[0]
+    batch_size = outputs.shape[1]
+    # 正样本距离
+    posi_pairs_dist =0
+    for i in range(posi_size-1):
+        for j in range(i+1, posi_size):
+            posi_pairs_dist += torch.sum(F.pairwise_distance(outputs[i], outputs[j]))
+
+    # 负样本距离
+    # [posi_size, batch_size/2, hidden_dim] -> [batch_size/2, posi_size,  hidden_dim]
+    outputs = torch.transpose(outputs, dim0=0, dim1=1)
+    neg_pair_dist = 0
+    for i in range(0.5*batch_size-1):
+        for j in range(i+1, 0.5*batch_size):
+            # outputs[i] outputs[j]
+            for k in range(posi_size):
+                dist = F.pairwise_distance(outputs[i][k], outputs[j])
+                zero = torch.zeros_like(dist)+0.00001
+                dist = dist.where(dist<M, zero)
+                neg_pair_dist += torch.sum(dist)
+    return posi_pairs_dist, neg_pair_dist
