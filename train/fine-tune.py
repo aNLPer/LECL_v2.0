@@ -45,10 +45,10 @@ for epoch in range(EPOCH):
     batch_enc_ids = batch_enc_ids.to(device)
     batch_enc_atten_mask = torch.stack(batch_enc_atten_mask,dim=0)
     batch_enc_atten_mask = batch_enc_atten_mask.to(device)
-
-    outputs = []
-    for i in range(POSI_SIZE):
-        output = model(input_ids=batch_enc_ids[i], attention_mask=batch_enc_atten_mask[i])
-        outputs.append(torch.mean(output.last_hidden_state, dim=1))
-    outputs = torch.stack(outputs, dim=0)
-    print(outputs)
+    with torch.no_grad():
+        outputs = []
+        for i in range(POSI_SIZE):
+            output = model(input_ids=batch_enc_ids[i], attention_mask=batch_enc_atten_mask[i])
+            outputs.append(torch.mean(output.last_hidden_state, dim=1))
+        outputs = torch.stack(outputs, dim=0)
+        print(outputs)
