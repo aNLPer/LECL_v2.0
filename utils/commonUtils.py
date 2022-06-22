@@ -298,5 +298,5 @@ def train_distloss_fun(outputs, radius = 10):
                 dist = dist.where(dist<radius, zero)
                 neg_pairs_dist += torch.sum(dist)
 
-    return posi_pairs_dist/(0.5*posi_size*(posi_size-1)), \
-           neg_pairs_dist/((0.5*batch_size*(batch_size-1))*posi_size**2)
+    return posi_pairs_dist/batch_size, \
+           neg_pairs_dist/batch_size
