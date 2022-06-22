@@ -143,6 +143,7 @@ def get_acc_desc(file_path):
 # 获取batch
 def pretrain_data_loader(accu2case,
                          batch_size,
+                         label2index,
                          positive_size=2,
                          sim_accu_num=2,
                          category2accu=None,
@@ -200,8 +201,8 @@ def pretrain_data_loader(accu2case,
         selected_cases = np.random.choice(accu2case[accu], size=positive_size, replace=False)
         for i in range(positive_size):
             seq[i].append(selected_cases[i])
-
-    return seq
+    label_ids = [label2index[label] for label in selected_accus]
+    return seq, label_ids
 
 
 def train_cosloss_fun(out_1, out_2, out_3, label_rep):
@@ -272,7 +273,7 @@ def train_cosloss_fun(out_1, out_2, out_3, label_rep):
 
 def train_distloss_fun(outputs, radius = 10):
     """
-    :param outputs: [posi_size, batch_size/2, hidden_dim]
+    :param outputs: [posi_size, batch_size/posi_size, hidden_dim]
     :param label_rep:
     :param label:
     :return:

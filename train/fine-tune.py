@@ -1,7 +1,9 @@
 from transformers import BertModel, BertTokenizer, BertForSequenceClassification
 from utils.commonUtils import pretrain_data_loader, train_distloss_fun
 from dataprepare.dataprepare import make_accu2case_dataset, load_classifiedAccus
+from models.bert_base import ContrasBert
 import torch
+import torch.nn as nn
 import torch.optim as optim
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -9,6 +11,8 @@ accu2case = make_accu2case_dataset("../dataset/CAIL-SMALL/data_train_processed.t
 category2accu, accu2category = load_classifiedAccus("../dataprepare/accusation_classified_v2_1.txt")
 tokenizer = BertTokenizer.from_pretrained("bert-base-chinese")
 
+bert_hidden_size = 768
+LABEL_SIZE = 112
 EPOCH = 1000
 BATCH_SIZE = 72
 POSI_SIZE = 2
@@ -17,17 +21,20 @@ LR = 0.01
 M = 10
 
 # model = BertModel.from_pretrained("bert-base-chinese")
-model = BertForSequenceClassification.from_pretrained("bert-base-chinese",
-                                                      num_labels = 112,
-                                                      output_attentions = False,
-                                                      output_hidden_states = True)
+# model = BertForSequenceClassification.from_pretrained("bert-base-chinese",
+#                                                       num_labels = 112,
+#                                                       output_attentions = False,
+#                                                       output_hidden_states = True)
+model = ContrasBert(hidden_size=bert_hidden_size, label_size=LABEL_SIZE)
 model.to(device)
+
+criterion = nn.CrossEntropyLoss()
 
 optimizer = optim.SGD(model.parameters(), lr=LR)
 
 for epoch in range(EPOCH):
     print("fine-tune start......")
-    seq = pretrain_data_loader(accu2case=accu2case,
+    seq, label_ids = pretrain_data_loader(accu2case=accu2case,
                                     batch_size=BATCH_SIZE,
                                     positive_size=POSI_SIZE,
                                     sim_accu_num=SIM_ACCU_NUM,
@@ -52,13 +59,24 @@ for epoch in range(EPOCH):
     # batch_enc_atten_mask = batch_enc_atten_mask.to(device)
 
     with torch.no_grad():
-        outputs = []
+        contra_outputs = []
+        classify_outputs = []
         for i in range(POSI_SIZE):
-            output = model(input_ids=batch_enc_ids[i].to(device), attention_mask=batch_enc_atten_mask[i].to(device))
-            outputs.append(torch.mean(output.hidden_states[-1], dim=1))
-        outputs = torch.stack(outputs, dim=0)
+            # [batch_size/2, hidden_size]、[batch_size/2, label_size]
+            contra_hidden, classify_preds = model(input_ids=batch_enc_ids[i].to(device), attention_mask=batch_enc_atten_mask[i].to(device))
+            contra_outputs.append(contra_hidden)
+            classify_outputs.append(classify_preds)
+        # [posi_size, batch_size/posi_size, hidden_size]
+        contra_outputs = torch.stack(contra_outputs, dim=0)
+        # [posi_size, batch_size/posi_size, label_size] -> [batch_size, label_size]
+        classify_outputs = torch.cat(classify_outputs, dim=0)
+        # [batch_size,]
+        label_ids = torch.tensor(label_ids * 2)
 
-        posi_pairs_dist, neg_pairs_dist = train_distloss_fun(outputs, radius=M)
+        posi_pairs_dist, neg_pairs_dist = train_distloss_fun(contra_outputs, radius=M)
+        classfy_loss = criterion(classify_outputs, label_ids)
+
+        loss = posi_pairs_dist+neg_pairs_dist+classfy_loss
 
         print(posi_pairs_dist, neg_pairs_dist)
 
