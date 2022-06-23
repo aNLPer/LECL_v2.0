@@ -27,11 +27,11 @@ f.close()
 
 bert_hidden_size = 768
 LABEL_SIZE = 112
-EPOCH = 2000
+EPOCH = 2000*10
 BATCH_SIZE = 12
 POSI_SIZE = 2
 SIM_ACCU_NUM = 3
-LR = 0.001
+LR = 0.0001
 M = 10
 
 # model = BertModel.from_pretrained("bert-base-chinese")
@@ -98,7 +98,7 @@ for epoch in range(EPOCH):
     posi_pairs_dist, neg_pairs_dist = train_distloss_fun(contra_outputs, radius=M)
     classfy_loss = criterion(classify_outputs, label_ids)
 
-    loss = posi_pairs_dist+neg_pairs_dist#+classfy_loss
+    loss = posi_pairs_dist+neg_pairs_dist+classfy_loss
 
     # 反向传播计算梯度
     loss.backward()
