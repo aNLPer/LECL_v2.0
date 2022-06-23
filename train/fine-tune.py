@@ -28,7 +28,7 @@ f.close()
 bert_hidden_size = 768
 LABEL_SIZE = 112
 EPOCH = 100
-BATCH_SIZE = 72
+BATCH_SIZE = 24
 POSI_SIZE = 2
 SIM_ACCU_NUM = 4
 LR = 0.01
