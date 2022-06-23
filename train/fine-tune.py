@@ -27,11 +27,11 @@ f.close()
 
 bert_hidden_size = 768
 LABEL_SIZE = 112
-EPOCH = 100
-BATCH_SIZE = 24
+EPOCH = 2000
+BATCH_SIZE = 12
 POSI_SIZE = 2
-SIM_ACCU_NUM = 4
-LR = 0.01
+SIM_ACCU_NUM = 3
+LR = 0.001
 M = 10
 
 # model = BertModel.from_pretrained("bert-base-chinese")
@@ -97,7 +97,8 @@ for epoch in range(EPOCH):
     label_ids = torch.tensor(label_ids * 2).to(device) # [batch_size,]
     posi_pairs_dist, neg_pairs_dist = train_distloss_fun(contra_outputs, radius=M)
     classfy_loss = criterion(classify_outputs, label_ids)
-    loss = posi_pairs_dist+neg_pairs_dist+classfy_loss
+
+    loss = posi_pairs_dist+neg_pairs_dist#+classfy_loss
 
     # 反向传播计算梯度
     loss.backward()
@@ -111,8 +112,8 @@ for epoch in range(EPOCH):
     # 更新学习率
     scheduler.step()
 
-    if (epoch+1)%10 == 0:
-        print(f"step: {epoch}    loss: {loss} \n")
+    if (epoch+1)%100 == 0:
+        print(f"step: {epoch+1}    loss: {loss} \n")
 
 
 
