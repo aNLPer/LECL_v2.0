@@ -1,4 +1,4 @@
-from transformers import BertModel, BertTokenizer, BertForSequenceClassification
+from transformers import BertModel, BertTokenizer, get_linear_schedule_with_warmup
 from utils.commonUtils import pretrain_data_loader, train_distloss_fun, Lang
 from dataprepare.dataprepare import make_accu2case_dataset, load_classifiedAccus
 from models.bert_base import ContrasBert
@@ -42,9 +42,16 @@ M = 10
 model = ContrasBert(hidden_size=bert_hidden_size, label_size=LABEL_SIZE)
 model.to(device)
 
+# 定义损失函数
 criterion = nn.CrossEntropyLoss()
 
+# 定义优化器
 optimizer = optim.SGD(model.parameters(), lr=LR)
+
+# 学习率优化策略
+scheduler = get_linear_schedule_with_warmup(optimizer,
+                                            num_warmup_steps = 0, # Default value in run_glue.py
+                                            num_training_steps = EPOCH)
 
 for epoch in range(EPOCH):
     print("fine-tune start......")
@@ -68,28 +75,41 @@ for epoch in range(EPOCH):
         batch_enc_ids.append(batch_enc["input_ids"])
         batch_enc_atten_mask.append(batch_enc["attention_mask"])
 
+    # 设置模型状态
     model.train()
+
+    # 优化参数的梯度置0
+    optimizer.zero_grad()
+
+    # 计算模型的输出
     contra_outputs = []
     classify_outputs = []
     for i in range(POSI_SIZE):
         # [batch_size/2, hidden_size]、[batch_size/2, label_size]
-        contra_hidden, classify_preds = model(input_ids=batch_enc_ids[i].to(device), attention_mask=batch_enc_atten_mask[i].to(device))
+        contra_hidden, classify_preds = model(input_ids=batch_enc_ids[i].to(device),
+                                              attention_mask=batch_enc_atten_mask[i].to(device))
         contra_outputs.append(contra_hidden)
         classify_outputs.append(classify_preds)
-    # 2 * [batch_size/posi_size, hidden_size] -> [posi_size, batch_size/posi_size, hidden_size]
-    contra_outputs = torch.stack(contra_outputs, dim=0)
-    # [posi_size, batch_size/posi_size, label_size] -> [batch_size, label_size]
-    classify_outputs = torch.cat(classify_outputs, dim=0)
-    # [batch_size,]
-    label_ids = torch.tensor(label_ids * 2).to(device)
 
+    # 计算误差
+    contra_outputs = torch.stack(contra_outputs, dim=0)  # 2 * [batch_size/posi_size, hidden_size] -> [posi_size, batch_size/posi_size, hidden_size]
+    classify_outputs = torch.cat(classify_outputs, dim=0)  # [posi_size, batch_size/posi_size, label_size] -> [batch_size, label_size]
+    label_ids = torch.tensor(label_ids * 2).to(device) # [batch_size,]
     posi_pairs_dist, neg_pairs_dist = train_distloss_fun(contra_outputs, radius=M)
     classfy_loss = criterion(classify_outputs, label_ids)
-
     loss = posi_pairs_dist+neg_pairs_dist+classfy_loss
 
-    # loss.backward()
+    # 反向传播计算梯度
+    loss.backward()
 
-    # print(posi_pairs_dist, neg_pairs_dist)
+    # 梯度裁剪防止梯度爆炸
+    nn.utils.clip_grad_norm_(model.parameters(), 1.0)
+
+    # 更新梯度
+    optimizer.step()
+
+    # 更新学习率
+    scheduler.step()
+
 
 

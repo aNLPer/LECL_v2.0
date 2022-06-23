@@ -5,8 +5,7 @@ from transformers import BertModel, BertConfig
 class ContrasBert(nn.Module):
     def __init__(self, hidden_size, label_size):
         super(ContrasBert, self).__init__()
-        self.config = BertConfig(num_hidden_layers=3)
-        self.bert = BertModel(config=self.config).from_pretrained("bert-base-chinese",
+        self.bert = BertModel.from_pretrained("bert-base-chinese",
                                                 num_labels=label_size,
                                                 output_attentions=False,
                                                 output_hidden_states=True)
