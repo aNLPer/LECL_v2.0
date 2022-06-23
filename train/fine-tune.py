@@ -1,4 +1,4 @@
-from transformers import BertModel, BertTokenizer, get_linear_schedule_with_warmup
+from transformers import BertModel, BertTokenizer, get_linear_schedule_with_warmup, AdamW
 from utils.commonUtils import pretrain_data_loader, train_distloss_fun, Lang
 from dataprepare.dataprepare import make_accu2case_dataset, load_classifiedAccus
 from models.bert_base import ContrasBert
@@ -46,7 +46,10 @@ model.to(device)
 criterion = nn.CrossEntropyLoss()
 
 # 定义优化器
-optimizer = optim.SGD(model.parameters(), lr=LR)
+# optimizer = optim.SGD(model.parameters(), lr=LR)
+optimizer = AdamW(model.parameters(),
+                  lr=2e-5,
+                  eps=1e-8)
 
 # 学习率优化策略
 scheduler = get_linear_schedule_with_warmup(optimizer,
