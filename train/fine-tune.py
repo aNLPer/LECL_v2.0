@@ -27,7 +27,7 @@ f.close()
 
 bert_hidden_size = 768
 LABEL_SIZE = 112
-EPOCH = 20
+EPOCH = 100
 BATCH_SIZE = 72
 POSI_SIZE = 2
 SIM_ACCU_NUM = 4
@@ -111,5 +111,7 @@ for epoch in range(EPOCH):
     # 更新学习率
     scheduler.step()
 
+    if (epoch+1)%10 == 0:
+        print(f"loss: {loss}")
 
 
