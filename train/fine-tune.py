@@ -112,6 +112,6 @@ for epoch in range(EPOCH):
     scheduler.step()
 
     if (epoch+1)%10 == 0:
-        print(f"loss: {loss}")
+        print(f"loss: {loss} \n")
 
 
