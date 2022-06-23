@@ -52,9 +52,9 @@ optimizer = optim.SGD(model.parameters(), lr=LR)
 scheduler = get_linear_schedule_with_warmup(optimizer,
                                             num_warmup_steps = 0, # Default value in run_glue.py
                                             num_training_steps = EPOCH)
-
+print("fine-tune start......")
 for epoch in range(EPOCH):
-    print("fine-tune start......")
+
     seq, label_ids = pretrain_data_loader(accu2case=accu2case,
                                           batch_size=BATCH_SIZE,
                                           label2index=lang.label2index,
@@ -112,6 +112,8 @@ for epoch in range(EPOCH):
     scheduler.step()
 
     if (epoch+1)%10 == 0:
-        print(f"loss: {loss} \n")
+        print(f"step: {epoch}    loss: {loss} \n")
+
+
 
 
