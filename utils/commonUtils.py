@@ -59,7 +59,8 @@ class ConfusionMatrix:
         :param n_class: 类别数目
         """
         self.__mat = np.zeros((n_class, n_class))
-        self.n_class= n_class
+        self.n_class = n_class
+        self.n_activated_class = None
         self.class_weights = None
 
     def updateMat(self, preds, labels):
@@ -78,6 +79,10 @@ class ConfusionMatrix:
         # 更新每个类别权重
         counts = self.__mat.sum(axis=1)
         self.class_weights = counts/np.sum(counts)
+
+        # 计算有效类别
+        self.n_activated_class = sum(counts != 0)
+
 
     def get_acc(self):
         """
@@ -116,7 +121,7 @@ class ConfusionMatrix:
         :return: 返回 Macro-Precision
         """
         norm_mat = self.__nomal1(dim=0)
-        return norm_mat.trace()/self.n_class
+        return norm_mat.trace()/self.n_activated_class
 
     def getMiP(self):
         """
@@ -130,7 +135,7 @@ class ConfusionMatrix:
         :return: 返回 Macro-Recall
         """
         norm_mat = self.__nomal1(dim=1)
-        return norm_mat.trace() / self.n_class
+        return norm_mat.trace() / self.n_activated_class
 
     def getMiR(self):
         """
@@ -147,7 +152,7 @@ class ConfusionMatrix:
         mat_1 = self.__nomal1()
         mat_0 = self.__nomal1(dim=0)
         mat = 2*mat_0*mat_1/(mat_1+mat_0+0.00001)
-        return mat.trace()/self.n_class
+        return mat.trace()/self.n_activated_class
 
 
     def getMiF(self):

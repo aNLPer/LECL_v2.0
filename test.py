@@ -28,26 +28,19 @@ import numpy as np
 #     print("end")
 #
 #
-# def genConfusMat(cm,i,j):
-#     cm[i][j] += i*j
-#
-# for i in range(3):
-#     for j in range(3):
-#         genConfusMat(confusMat, i, j)
+confusMat = np.zeros((3,3))
+def genConfusMat(cm,i,j):
+    cm[i][j] += i*j
+
+for i in range(3):
+    for j in range(3):
+        genConfusMat(confusMat, i, j)
 # print(confusMat)
 # print(2*confusMat*confusMat/(confusMat+confusMat+0.0001))
 # confusMat[1][1] = 2
 # confusMat[1][2] = 3
 # print(confusMat)
-# counts = confusMat.sum(axis=1)
-# print(counts)
+counts = confusMat.sum(axis=1)
+print(counts)
 # print(counts/np.sum(counts))
-a = 2
-
-b = 3
-
-print(a/b)
-
-#方法一：
-
-print(round(0.77777777,6))
+print(sum(counts!=0))
