@@ -20,7 +20,7 @@ lang = pickle.load(f)
 f.close()
 
 bert_hidden_size = 768
-EPOCH = 2000
+EPOCH = 2
 LABEL_SIZE = 112
 STEP = EPOCH*30
 BATCH_SIZE = 12
@@ -143,6 +143,7 @@ for step in range(STEP):
         length_val_data = 0
         valid_seq, valid_label = prepare_valid_data("../dataset/CAIL-SMALL/data_valid_processed.txt")
         for val_seq, val_label in data_loader(valid_seq, valid_label, batch_size=BATCH_SIZE):
+            val_label = torch.tensor(val_label, dtype=torch.long).to(device)
             val_seq_enc = tokenizer.batch_encode_plus(val_seq,
                                                     add_special_tokens=False,
                                                     max_length=512,
@@ -153,11 +154,11 @@ for step in range(STEP):
             with torch.no_grad():
                 val_contra_hidden, val_classify_preds = model(input_ids=val_seq_enc["input_ids"].to(device),
                                                       attention_mask=val_seq_enc["attention_mask"].to(device))
-            val_classify_loss = criterion(val_classify_preds, val_label)
-            valid_loss += val_classify_loss.item()
-            right_preds, batch_len = accumulated_accuracy(classify_preds.numpy(), np.array(val_label))
-            total_eval_accuracy += right_preds
-            length_val_data += batch_len
+                val_classify_loss = criterion(val_classify_preds, val_label)
+                valid_loss += val_classify_loss.item()
+                right_preds, batch_len = accumulated_accuracy(classify_preds.cpu().numpy(), val_label.cpu().numpy())
+                total_eval_accuracy += right_preds
+                length_val_data += batch_len
 
         valid_loss = valid_loss/length_val_data
         valid_loss_records.append(valid_loss)
