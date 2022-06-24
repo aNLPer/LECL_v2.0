@@ -21,9 +21,9 @@ lang = pickle.load(f)
 f.close()
 
 bert_hidden_size = 768
-EPOCH = 1
+EPOCH = 2000
 LABEL_SIZE = 112
-STEP = EPOCH*50
+STEP = EPOCH*200
 BATCH_SIZE = 12
 POSI_SIZE = 2
 SIM_ACCU_NUM = 3
@@ -47,7 +47,7 @@ optimizer = AdamW(model.parameters(),
 scheduler = get_linear_schedule_with_warmup(optimizer,
                                             num_warmup_steps = 0, # Default value in run_glue.py
                                             num_training_steps = STEP)
-print("fine-tune start......")
+print("fine-tune start......\n")
 
 train_loss = 0
 train_loss_records = []
@@ -164,11 +164,11 @@ for step in range(STEP):
         train_loss_records.append(train_loss / EPOCH)
 
         end = timer()
-        print(f"epoch: {(step + 1)/EPOCH}  train_loss: {round(train_loss/EPOCH, 6)}  valid_loss: {round(valid_loss,6)}\n"
-              f"accuracy: {round(accuracy, 6)}  F1: {round(f1, 6)}  MR: {round(mr, 6)}  MP: {round(mp, 6)}  time: {round((end-start)/60, 2)}min \n")
+        print(f"Epoch: {int((step + 1)/EPOCH)}  Train_loss: {round(train_loss/EPOCH, 6)}  Valid_loss: {round(valid_loss,6)}   Accuracy: {round(accuracy, 6)}  \n"
+              f"F1: {round(f1, 6)}  MR: {round(mr, 6)}  MP: {round(mp, 6)}  Time: {round((end-start)/60, 2)}min \n")
 
         # 保存模型
-        save_path = f"./model_{(step + 1)/EPOCH}_.pkl"
+        save_path = f"./model_points/model_at_epoch-{int((step + 1)/EPOCH)}_.pkl"
         torch.save(model, save_path)
 
         train_loss = 0
