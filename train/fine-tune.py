@@ -1,5 +1,6 @@
 from transformers import BertModel, BertTokenizer, get_linear_schedule_with_warmup, AdamW
-from utils.commonUtils import pretrain_data_loader, train_distloss_fun, Lang, data_loader
+from utils.commonUtils import pretrain_data_loader, train_distloss_fun, Lang, \
+    data_loader, accumulated_accuracy, prepare_valid_data, ConfusionMatrix
 from dataprepare.dataprepare import make_accu2case_dataset, load_classifiedAccus
 from models.bert_base import ContrasBert
 from timeit import default_timer as timer
@@ -20,7 +21,7 @@ lang = pickle.load(f)
 f.close()
 
 bert_hidden_size = 768
-EPOCH = 1000
+EPOCH = 1
 LABEL_SIZE = 112
 STEP = EPOCH*50
 BATCH_SIZE = 12
@@ -28,25 +29,6 @@ POSI_SIZE = 2
 SIM_ACCU_NUM = 3
 LR = 0.0001
 M = 10
-
-def prepare_valid_data(resourcefile):
-    seq = []
-    label = []
-    f = open("../dataprepare/lang_data_train_preprocessed.pkl", "rb")
-    lang = pickle.load(f)
-    f.close()
-    with open(resourcefile, "r", encoding="utf-8") as f:
-        for line in f:
-            example = json.loads(line)
-            seq.append(example[0])
-            label.append(lang.label2index[example[1]])
-    return seq, label
-
-def accumulated_accuracy(preds, labels):
-    pred_flat = np.argmax(preds, axis=1).flatten()
-    labels_flat = labels.flatten()
-    return np.sum(pred_flat == labels_flat), len(labels_flat)
-
 
 model = ContrasBert(hidden_size=bert_hidden_size, label_size=LABEL_SIZE)
 model = model.to(device)
@@ -66,10 +48,14 @@ scheduler = get_linear_schedule_with_warmup(optimizer,
                                             num_warmup_steps = 0, # Default value in run_glue.py
                                             num_training_steps = STEP)
 print("fine-tune start......")
+
 train_loss = 0
 train_loss_records = []
 valid_loss_records = []
 valid_acc_records = []
+valid_mp_records = []
+valid_f1_records = []
+valid_mr_records = []
 for step in range(STEP):
     # 随机生成一个batch
     if step%EPOCH == 0:
@@ -135,12 +121,11 @@ for step in range(STEP):
 
     # 训练完一个EPOCH后评价模型
     if (step+1)%EPOCH == 0:
-
+        # 初始化混淆矩阵
+        confusMat = ConfusionMatrix(len(lang.index2label))
         # 验证模型在验证集上的表现
         model.eval()
         valid_loss = 0
-        total_eval_accuracy = 0
-        length_val_data = 0
         val_step = 0
         valid_seq, valid_label = prepare_valid_data("../dataset/CAIL-SMALL/data_valid_processed.txt")
         for val_seq, val_label in data_loader(valid_seq, valid_label, batch_size=BATCH_SIZE):
@@ -158,27 +143,42 @@ for step in range(STEP):
                 val_classify_loss = criterion(val_classify_preds, val_label)
                 valid_loss += val_classify_loss.item()
                 right_preds, batch_len = accumulated_accuracy(val_classify_preds.cpu().numpy(), val_label.cpu().numpy())
-
-            total_eval_accuracy += right_preds
-            length_val_data += batch_len
+                confusMat.updateMat(val_classify_preds.cpu().numpy(), val_label.cpu().numpy())
             val_step += 1
 
         valid_loss = valid_loss/val_step
         valid_loss_records.append(valid_loss)
 
-        accuracy = total_eval_accuracy/length_val_data
+        accuracy = confusMat.get_acc() # 根据混淆矩阵求解acc
         valid_acc_records.append(accuracy)
+
+        f1 = confusMat.getMaF()
+        valid_f1_records.append(f1)
+
+        mr = confusMat.getMaR()
+        valid_mr_records.append(mr)
+
+        mp = confusMat.getMaP()
+        valid_mp_records.append(mp)
 
         train_loss_records.append(train_loss / EPOCH)
 
         end = timer()
-        print(f"epoch: {(step + 1)/EPOCH}  train_loss: {train_loss / EPOCH}  valid_loss: {valid_loss}  accuracy: {accuracy}  time: {(end - start) / 60}min")
+        print(f"epoch: {(step + 1)/EPOCH}  train_loss: {train_loss / EPOCH}  valid_loss: {valid_loss} \n"
+              f"accuracy: {accuracy}  F1: {f1}  MR: {mr}    MP: {mp}  time: {(end-start)/60}min")
+
         train_loss = 0
 
 train_loss_records = json.dumps(train_loss_records, ensure_ascii=False)
 valid_loss_records = json.dumps(valid_loss_records, ensure_ascii=False)
 valid_acc_records = json.dumps(valid_acc_records,ensure_ascii=False)
+valid_mp_records = json.dumps(valid_mp_records,ensure_ascii=False)
+valid_f1_records = json.dumps(valid_f1_records,ensure_ascii=False)
+valid_mr_records = json.dumps(valid_mr_records,ensure_ascii=False)
 with open(f"./training_records.txt", "w", encoding="utf-8") as f:
     f.write('train_loss_records\t' + train_loss_records + "\n")
     f.write('valid_loss_records\t' + valid_loss_records + "\n")
     f.write('valid_acc_records\t' + valid_acc_records + "\n")
+    f.write('valid_mp_records\t' + valid_mp_records + "\n")
+    f.write('valid_f1_records\t' + valid_f1_records + "\n")
+    f.write('valid_mr_records\t' + valid_mr_records + "\n")

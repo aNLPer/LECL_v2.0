@@ -3,6 +3,7 @@ import random
 import math
 import json
 import numpy as np
+import pickle
 from transformers import BertTokenizer
 import torch
 import torch.nn.functional as F
@@ -48,6 +49,122 @@ class Lang:
 
     def update_label2index(self):
         self.label2index = {accu:idx for idx, accu in enumerate(self.index2label)}
+
+
+class ConfusionMatrix:
+
+    def __init__(self, n_class):
+        """
+        混淆矩阵的每一行代表真实标签，每一列代表预测标签
+        :param n_class: 类别数目
+        """
+        self.__mat = np.zeros((n_class, n_class))
+        self.n_class= n_class
+        self.class_weights = None
+
+    def updateMat(self, preds, labels):
+        """
+        根据预测结果和标签更新混淆矩阵
+        :param preds:
+        :param labels:
+        :return:
+        """
+        # 更新矩阵数值
+        pred_flat = np.argmax(preds, axis=1).flatten()
+        labels_flat = labels.flatten()
+        for i in range(len(labels_flat)):
+            self.__mat[labels_flat[i]][pred_flat[i]] += 1
+
+        # 更新每个类别权重
+        counts = self.__mat.sum(axis=1)
+        self.class_weights = counts/np.sum(counts)
+
+    def get_acc(self):
+        """
+        :return: 返回准确率
+        """
+        return self.__mat.trace()/self.__mat.sum()
+
+    def get_recall(self, class_idx):
+        """
+        返回某类别的召回率
+        :param class_idx:
+        :return:
+        """
+        return self.__nomal1()[class_idx][class_idx]
+
+    def get_precision(self, class_idx):
+        """
+        返回某类别的精确率
+        :param class_idx:
+        :return:
+        """
+        return self.__nomal1(dim=0)[class_idx][class_idx]
+
+    def get_f1(self, class_idx):
+        """
+        返回某类别的f1值
+        :param class_idx:
+        :return:
+        """
+        recall = self.get_recall(class_idx)
+        precision = self.get_precision(class_idx)
+        return 2*recall*precision / (recall+precision+0.00001)
+
+    def getMaP(self):
+        """
+        :return: 返回 Macro-Precision
+        """
+        norm_mat = self.__nomal1(dim=0)
+        return norm_mat.trace()/self.n_class
+
+    def getMiP(self):
+        """
+        返回 Micro-Precision, 考虑到每个类别的权重适合分布不均衡数据
+        :return:
+        """
+        pass
+
+    def getMaR(self):
+        """
+        :return: 返回 Macro-Recall
+        """
+        norm_mat = self.__nomal1(dim=1)
+        return norm_mat.trace() / self.n_class
+
+    def getMiR(self):
+        """
+        返回 Micro-Recall, 考虑到每个类别的权重适合分布不均衡数据
+        :return:
+        """
+        pass
+
+    def getMaF(self):
+        """
+        返回 Macro-F1
+        :return:
+        """
+        mat_1 = self.__nomal1()
+        mat_0 = self.__nomal1(dim=0)
+        mat = 2*mat_0*mat_1/(mat_1+mat_0+0.00001)
+        return mat.trace()/self.n_class
+
+
+    def getMiF(self):
+        pass
+
+    def __nomal1(self, dim=1):
+        """
+        归一化矩阵
+        :param dim: 指定在哪个维度做归一化 default：1
+        :return:
+        """
+        assert dim == 1 or dim == 0
+        if dim == 1:
+            return self.__mat / (self.__mat.sum(axis=dim)[:, np.newaxis]+0.00001)
+        else:
+            return self.__mat / ((self.__mat.sum(axis=dim)+0.000001))
+
 
 def sum_dict(data_dict):
     sum = 0
@@ -222,73 +339,6 @@ def data_loader(seq, label, batch_size):
         ids = indices[i: min(i + batch_size, num_examples)]  # 最后⼀次可能不⾜⼀个batch
         yield [seq[j] for j in ids], [label[j] for j in ids]
 
-
-def train_cosloss_fun(out_1, out_2, out_3, label_rep):
-    """
-    损失函数
-    :param out_1: tensor
-    :param out_2: tensor
-    :param out_3: tensor
-    :param label_rep tensor
-    :return: loss scalar
-    """
-    batch_size = out_1.shape[0]
-    # out_1 样本损失函数
-    loss_out1 = 0
-    for i in range(batch_size):
-        # [batch_size, d_model]
-        x = out_1[i].expand(batch_size, -1)
-        # [batch_size]
-        x_out1 = torch.cosine_similarity(x, out_1, dim=1)/TEMPER
-        # [batch_size]
-        x_out2 = torch.cosine_similarity(x, out_2, dim=1)/TEMPER
-        # [batch_size]
-        x_out3 = torch.cosine_similarity(x, out_3, dim=1)/TEMPER
-        # [batch_size]
-        x_label_rep = torch.cosine_similarity(x, label_rep, dim=1)/TEMPER
-
-        molecule = torch.sum(torch.tensor([torch.exp(x_out2[i]), torch.exp(x_out3[i]), torch.exp(x_label_rep[i])]))
-        denominator = torch.sum(torch.exp(x_out1[0:i])) - torch.exp(x_out1[i]) + torch.sum(torch.exp(x_out2)) + torch.sum(torch.exp(x_out3)) + torch.sum(torch.exp(x_label_rep))
-        loss_out1 -= torch.log(molecule/denominator)
-
-    # out_2 样本损失函数
-    loss_out2 = 0
-    for i in range(batch_size):
-        # [batch_size, d_model]
-        x = out_2[i].expand(batch_size, -1)
-        # [batch_size]
-        x_out1 = torch.cosine_similarity(x, out_1, dim=1) / TEMPER
-        # [batch_size]
-        x_out2 = torch.cosine_similarity(x, out_2, dim=1) / TEMPER
-        # [batch_size]
-        x_out3 = torch.cosine_similarity(x, out_3, dim=1) / TEMPER
-        # [batch_size]
-        x_label_rep = torch.cosine_similarity(x, label_rep, dim=1) / TEMPER
-
-        molecule = torch.sum(torch.tensor([torch.exp(x_out1[i]), torch.exp(x_out3[i]), torch.exp(x_label_rep[i])]))
-        denominator = torch.sum(torch.exp(x_out1)) + torch.sum(torch.exp(x_out2)) - torch.exp(x_out2[i]) + torch.sum(torch.exp(x_out3)) + torch.sum(torch.exp(x_label_rep))
-        loss_out2 -= torch.log(molecule / denominator)
-
-    # out_3 样本损失函数
-    loss_out3 = 0
-    for i in range(batch_size):
-        # [batch_size, d_model]
-        x = out_3[i].expand(batch_size, -1)
-        # [batch_size]
-        x_out1 = torch.cosine_similarity(x, out_1, dim=1) / TEMPER
-        # [batch_size]
-        x_out2 = torch.cosine_similarity(x, out_2, dim=1) / TEMPER
-        # [batch_size]
-        x_out3 = torch.cosine_similarity(x, out_3, dim=1) / TEMPER
-        # [batch_size]
-        x_label_rep = torch.cosine_similarity(x, label_rep, dim=1) / TEMPER
-
-        molecule = torch.sum(torch.tensor([torch.exp(x_out1[i]), torch.exp(x_out2[i]), torch.exp(x_label_rep[i])]))
-        denominator = torch.sum(torch.exp(x_out1)) + torch.sum(torch.exp(x_out2)) + torch.sum(torch.exp(x_out3)) - torch.exp(x_out3[i]) + torch.sum(torch.exp(x_label_rep))
-        loss_out3 -= torch.log(molecule / denominator)
-
-    return loss_out1 + loss_out2 + loss_out3
-
 def train_distloss_fun(outputs, radius = 10):
     """
     :param outputs: [posi_size, batch_size/posi_size, hidden_dim]
@@ -319,3 +369,30 @@ def train_distloss_fun(outputs, radius = 10):
 
     return posi_pairs_dist/batch_size, \
            neg_pairs_dist/batch_size
+
+def accumulated_accuracy(preds, labels):
+    pred_flat = np.argmax(preds, axis=1).flatten()
+    labels_flat = labels.flatten()
+    return np.sum(pred_flat == labels_flat), len(labels_flat)
+
+def genConfusMat(confusMat, preds, labels):
+    pred_flat = np.argmax(preds, axis=1).flatten()
+    labels_flat = labels.flatten()
+    for i in range(len(labels_flat)):
+        confusMat[labels_flat[i]][pred_flat[i]] += 1
+
+def prepare_valid_data(resourcefile):
+    seq = []
+    label = []
+    f = open("../dataprepare/lang_data_train_preprocessed.pkl", "rb")
+    lang = pickle.load(f)
+    f.close()
+    with open(resourcefile, "r", encoding="utf-8") as f:
+        for line in f:
+            example = json.loads(line)
+            seq.append(example[0])
+            label.append(lang.label2index[example[1]])
+    return seq, label
+
+
+
