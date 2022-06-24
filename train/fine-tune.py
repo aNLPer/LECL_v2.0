@@ -156,7 +156,8 @@ for step in range(STEP):
                                                       attention_mask=val_seq_enc["attention_mask"].to(device))
                 val_classify_loss = criterion(val_classify_preds, val_label)
                 valid_loss += val_classify_loss.item()
-                right_preds, batch_len = accumulated_accuracy(classify_preds.cpu().numpy(), val_label.cpu().numpy())
+
+                right_preds, batch_len = accumulated_accuracy(val_classify_preds.cpu().numpy(), val_label.cpu().numpy())
                 total_eval_accuracy += right_preds
                 length_val_data += batch_len
 
