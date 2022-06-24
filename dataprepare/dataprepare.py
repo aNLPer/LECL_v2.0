@@ -14,7 +14,7 @@ import operator
 BATH_DATA_PATH = "..\dataset\CAIL-SMALL"
 
 # 构造数据集
-def getData(case_path, acc2desc):
+def getData(resource_path, target_path, acc2desc=None):
     '''
     构造数据集：[[case_desc,case_desc,...], "acc", "acc_desc"]
     # 分词
@@ -35,9 +35,9 @@ def getData(case_path, acc2desc):
     stopwords = commonUtils.get_filter_symbols("stop_word.txt")
     # 加载标点
     punctuations = commonUtils.get_filter_symbols("punctuation.txt")
-    fw = open("..\dataset\CAIL-SMALL\data_train_processed.txt", "w", encoding="utf-8")
+    fw = open(target_path, "w", encoding="utf-8")
     count = 0
-    with open(case_path, "r", encoding="utf-8") as f:
+    with open(resource_path, "r", encoding="utf-8") as f:
         for line in f:
             count += 1
             item = [] # 单条训练数据
@@ -59,6 +59,8 @@ def getData(case_path, acc2desc):
             # facts = [example_fact_3, example_fact_4]
             # item.append(example_fact_2)
             # item.append(example_fact_3)
+            if len("".join(example_fact_1))<10:
+                continue
             item.append("".join(example_fact_1))
             item.append(example['meta']['accusation'][0].strip())
             # 指控描述
@@ -219,7 +221,26 @@ def load_classifiedAccus(filename):
                     accu2category[accu].append(item[0])
     return category2accu, accu2category
 
-
+def val_test_datafilter(resourcefile, targetflie):
+    # 根据训练数据过滤val和test数据集
+    lang_f = open("lang_data_train_preprocessed.pkl", "rb")
+    lang = pickle.load(lang_f)
+    lang_f.close()
+    fw = open(targetflie, "w", encoding="utf-8")
+    print("start filter data......")
+    with open(resourcefile, "r", encoding="utf-8") as f:
+        for line in f:
+            example = json.loads(line)
+            example_accu = example["meta"]["accusation"][0]
+            if example_accu not in lang.label2index:
+                continue
+            else:
+                # example_fact = example["fact"]
+                # example_accu_idx = lang.label2index[example_accu]
+                # example_str = json.dumps([example_fact, example_accu_idx],ensure_ascii=False)
+                fw.write(line)
+    fw.close()
+    print("processing end ......")
 
 
 if __name__=="__main__":
@@ -241,9 +262,9 @@ if __name__=="__main__":
     # # # 将训练集中的文本转换成对应的索引
     # # print("start word to index")
     # id2acc, acc2id = getAccus(data_path)
-    f = open("lang_data_train_preprocessed.pkl", "rb")
-    lang = pickle.load(f)
-    f.close()
+    # f = open("lang_data_train_preprocessed.pkl", "rb")
+    # lang = pickle.load(f)
+    # f.close()
     # word2Index(os.path.join(BATH_DATA_PATH,"data_train_processed.txt"), lang, acc2id)
     # print("processing end")
     #
@@ -279,27 +300,31 @@ if __name__=="__main__":
     # d1, d2 = getAccus(os.path.join(BATH_DATA_PATH,"data_train_filtered.json"))
     # print(len(d1))
 
-    category2accu, accu2category = load_classifiedAccus("accusation_classified_v2_1.txt")
+    # category2accu, accu2category = load_classifiedAccus("accusation_classified_v2_1.txt")
     # print(len(category2accu))
     # print(len(accu2category))
     # print("end")
 
 
-    accu2case = make_accu2case_dataset("../dataset/CAIL-SMALL/data_train_processed.txt")
+    # accu2case = make_accu2case_dataset("../dataset/CAIL-SMALL/data_train_processed.txt")
     # for _ in range(3):
     #     seq = commonUtils.pretrain_data_loader(accu2case, 8, 2)
     #     print(seq[0])
     #     print(seq[1])
     #     print("------------------xxxxx-------------------")
-    seq,label = commonUtils.pretrain_data_loader(accu2case=accu2case,
-                                           batch_size=48,
-                                           label2index=lang.label2index,
-                                           positive_size=2,
-                                           sim_accu_num=4,
-                                           category2accu=category2accu,
-                                           accu2category=accu2category)
-
-    print(seq)
+    # seq,label = commonUtils.pretrain_data_loader(accu2case=accu2case,
+    #                                        batch_size=48,
+    #                                        label2index=lang.label2index,
+    #                                        positive_size=2,
+    #                                        sim_accu_num=4,
+    #                                        category2accu=category2accu,
+    #                                        accu2category=accu2category)
+    #
+    # print(seq)
+    resourcefile = "../dataset/CAIL-SMALL/data_valid_filtered.json"
+    targetfile = "../dataset/CAIL-SMALL/data_valid_processed.txt"
+    # val_test_datafilter(resourcefile, targetfile)
+    getData(resourcefile, targetfile)
 
 
 

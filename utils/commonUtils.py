@@ -214,6 +214,14 @@ def pretrain_data_loader(accu2case,
 
     return seq, label_ids
 
+def data_loader(seq, label, batch_size):
+    num_examples = len(seq)
+    indices = list(range(num_examples))
+    random.shuffle(indices)  # 样本的读取顺序是随机的
+    for i in range(0, num_examples, batch_size):
+        ids = indices[i: min(i + batch_size, num_examples)]  # 最后⼀次可能不⾜⼀个batch
+        yield [seq[j] for j in ids], [label[j] for j in ids]
+
 
 def train_cosloss_fun(out_1, out_2, out_3, label_rep):
     """
