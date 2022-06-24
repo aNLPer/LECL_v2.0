@@ -167,6 +167,10 @@ for step in range(STEP):
         print(f"epoch: {(step + 1)/EPOCH}  train_loss: {train_loss / EPOCH}  valid_loss: {valid_loss} \n"
               f"accuracy: {accuracy}  F1: {f1}  MR: {mr}    MP: {mp}  time: {(end-start)/60}min")
 
+        # 保存模型
+        save_path = f"./model_{(step + 1)/EPOCH}_.pkl"
+        torch.save(model, save_path)
+
         train_loss = 0
 
 train_loss_records = json.dumps(train_loss_records, ensure_ascii=False)
