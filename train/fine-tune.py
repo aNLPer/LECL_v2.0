@@ -20,9 +20,9 @@ lang = pickle.load(f)
 f.close()
 
 bert_hidden_size = 768
-EPOCH = 2
+EPOCH = 1000
 LABEL_SIZE = 112
-STEP = EPOCH*30
+STEP = EPOCH*50
 BATCH_SIZE = 12
 POSI_SIZE = 2
 SIM_ACCU_NUM = 3
@@ -141,6 +141,7 @@ for step in range(STEP):
         valid_loss = 0
         total_eval_accuracy = 0
         length_val_data = 0
+        val_step = 0
         valid_seq, valid_label = prepare_valid_data("../dataset/CAIL-SMALL/data_valid_processed.txt")
         for val_seq, val_label in data_loader(valid_seq, valid_label, batch_size=BATCH_SIZE):
             val_label = torch.tensor(val_label, dtype=torch.long).to(device)
@@ -156,26 +157,28 @@ for step in range(STEP):
                                                       attention_mask=val_seq_enc["attention_mask"].to(device))
                 val_classify_loss = criterion(val_classify_preds, val_label)
                 valid_loss += val_classify_loss.item()
-
                 right_preds, batch_len = accumulated_accuracy(val_classify_preds.cpu().numpy(), val_label.cpu().numpy())
-                total_eval_accuracy += right_preds
-                length_val_data += batch_len
 
-        valid_loss = valid_loss/length_val_data
+            total_eval_accuracy += right_preds
+            length_val_data += batch_len
+            val_step += 1
+
+        valid_loss = valid_loss/val_step
         valid_loss_records.append(valid_loss)
 
         accuracy = total_eval_accuracy/length_val_data
         valid_acc_records.append(accuracy)
 
         train_loss_records.append(train_loss / EPOCH)
-        train_loss = 0
+
         end = timer()
         print(f"epoch: {(step + 1)/EPOCH}  train_loss: {train_loss / EPOCH}  valid_loss: {valid_loss}  accuracy: {accuracy}  time: {(end - start) / 60}min")
+        train_loss = 0
 
 train_loss_records = json.dumps(train_loss_records, ensure_ascii=False)
 valid_loss_records = json.dumps(valid_loss_records, ensure_ascii=False)
 valid_acc_records = json.dumps(valid_acc_records,ensure_ascii=False)
-with open("./training_records.txt", "w", encoding="utf-8") as f:
+with open(f"./training_records.txt", "w", encoding="utf-8") as f:
     f.write('train_loss_records\t' + train_loss_records + "\n")
     f.write('valid_loss_records\t' + valid_loss_records + "\n")
     f.write('valid_acc_records\t' + valid_acc_records + "\n")
