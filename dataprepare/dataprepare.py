@@ -230,6 +230,8 @@ def val_test_datafilter(resourcefile, targetflie):
     print("start filter data......")
     with open(resourcefile, "r", encoding="utf-8") as f:
         for line in f:
+            if len(example["meta"]["accusation"]) != 1:
+                continue
             example = json.loads(line)
             example_accu = example["meta"]["accusation"][0]
             if example_accu not in lang.label2index:
