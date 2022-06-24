@@ -164,8 +164,8 @@ for step in range(STEP):
         train_loss_records.append(train_loss / EPOCH)
 
         end = timer()
-        print(f"epoch: {(step + 1)/EPOCH}  train_loss: {train_loss / EPOCH}  valid_loss: {valid_loss} \n"
-              f"accuracy: {accuracy}  F1: {f1}  MR: {mr}    MP: {mp}  time: {(end-start)/60}min")
+        print(f"epoch: {(step + 1)/EPOCH}  train_loss: {round(train_loss/EPOCH, 6)}  valid_loss: {round(valid_loss,6)}\n"
+              f"accuracy: {round(accuracy, 6)}  F1: {round(f1, 6)}  MR: {round(mr, 6)}  MP: {round(mp, 6)}  time: {round((end-start)/60, 2)}min \n")
 
         # 保存模型
         save_path = f"./model_{(step + 1)/EPOCH}_.pkl"
