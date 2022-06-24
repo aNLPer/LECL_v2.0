@@ -6,10 +6,14 @@ import torch.nn.functional as F
 import torch.nn as nn
 from transformers import AutoTokenizer, BertTokenizer, BertModel, BertConfig
 from collections import OrderedDict
+from timeit import default_timer as timer
+import time
 
 print("hello python")
 
-# if __name__=="__main__":
-#     d = OrderedDict.fromkeys('acbde')
-#     print(d["d"])
-print(0%10)
+start = timer()
+time.sleep(5)
+end = timer()
+print(end-start)
+
+
