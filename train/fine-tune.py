@@ -27,7 +27,7 @@ STEP = EPOCH*150
 BATCH_SIZE = 12
 POSI_SIZE = 2
 SIM_ACCU_NUM = 3
-LR = 1e-4
+LR = 1e-5
 M = 10
 
 model = ContrasBert(hidden_size=bert_hidden_size, label_size=LABEL_SIZE)
