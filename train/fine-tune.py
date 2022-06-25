@@ -23,15 +23,18 @@ f.close()
 bert_hidden_size = 768
 EPOCH = 1000
 LABEL_SIZE = 112
-STEP = EPOCH*100
+STEP = EPOCH*150
 BATCH_SIZE = 12
 POSI_SIZE = 2
 SIM_ACCU_NUM = 3
-LR = 5e-5
+LR = 1e-4
 M = 10
 
 model = ContrasBert(hidden_size=bert_hidden_size, label_size=LABEL_SIZE)
 model.cuda(device)
+
+# model = torch.load("../dataset/model_checkpoints/round-1-1/model_at_epoch-50_.pkl")
+# model.cuda()
 
 # 设置数据并行
 # model = nn.DataParallel(model)
@@ -46,8 +49,9 @@ optimizer = AdamW(model.parameters(),
 
 # 学习率优化策略
 scheduler = get_linear_schedule_with_warmup(optimizer,
-                                            num_warmup_steps = 100, # Default value in run_glue.py
+                                            num_warmup_steps = 500, # Default value in run_glue.py
                                             num_training_steps = STEP)
+
 print("fine-tune start......\n")
 
 train_loss = 0
@@ -168,8 +172,14 @@ for step in range(STEP):
               f"F1: {round(f1, 6)}  MR: {round(mr, 6)}  MP: {round(mp, 6)}  Time: {round((end-start)/60, 2)}min \n")
 
         # 保存模型
-        save_path = f"../dataset/round-1-1/model_at_epoch-{int((step + 1)/EPOCH)}_.pt"
-        torch.save(model.state_dict(), save_path)
+        save_path = f"../dataset/model_checkpoints/round-1-1/model_at_epoch-{int((step + 1)/EPOCH)}_.pt"
+        torch.save({
+            'step': step,
+            'model_state_dict': model.state_dict(),
+            'optimizer_state_dict': optimizer.state_dict(),
+            'loss': loss,
+            'scheduler':scheduler.state_dict()
+        }, save_path)
 
         train_loss = 0
 

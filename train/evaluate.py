@@ -33,7 +33,8 @@ M = 10
 # model = ContrasBert(hidden_size=bert_hidden_size, label_size=LABEL_SIZE)
 # model = model.to(device)
 model = torch.load("../dataset/model_checkpoints/round-1-1/model_at_epoch-50_.pkl", map_location=device)
-
+torch.save(model.state_dict(), "../dataset/model_checkpoints/round-1-1/model_at_epoch-50-dict_.pkl")
+model.state_dict()
 # 设置数据并行
 # model = nn.DataParallel(model)
 
