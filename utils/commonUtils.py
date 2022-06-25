@@ -8,13 +8,6 @@ from transformers import BertTokenizer
 import torch
 import torch.nn.functional as F
 
-seed_val = 42
-
-random.seed(seed_val)
-np.random.seed(seed_val)
-torch.manual_seed(seed_val)
-torch.cuda.manual_seed_all(seed_val)
-
 
 TEMPER = 1
 

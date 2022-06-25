@@ -21,17 +21,18 @@ lang = pickle.load(f)
 f.close()
 
 bert_hidden_size = 768
-EPOCH = 2000
+EPOCH = 1000
 LABEL_SIZE = 112
-STEP = EPOCH*200
+STEP = EPOCH*100
 BATCH_SIZE = 12
 POSI_SIZE = 2
 SIM_ACCU_NUM = 3
-LR = 0.0001
+LR = 5e-5
 M = 10
 
 model = ContrasBert(hidden_size=bert_hidden_size, label_size=LABEL_SIZE)
-model = model.to(device)
+model.cuda(device)
+
 # 设置数据并行
 # model = nn.DataParallel(model)
 
@@ -40,12 +41,12 @@ criterion = nn.CrossEntropyLoss()
 
 # 定义优化器 AdamW由Transfomer提供,目前看来表现很好
 optimizer = AdamW(model.parameters(),
-                  lr=2e-5,
+                  lr=LR,
                   eps=1e-8)
 
 # 学习率优化策略
 scheduler = get_linear_schedule_with_warmup(optimizer,
-                                            num_warmup_steps = 0, # Default value in run_glue.py
+                                            num_warmup_steps = 100, # Default value in run_glue.py
                                             num_training_steps = STEP)
 print("fine-tune start......\n")
 
@@ -142,7 +143,6 @@ for step in range(STEP):
                                                       attention_mask=val_seq_enc["attention_mask"].to(device))
                 val_classify_loss = criterion(val_classify_preds, val_label)
                 valid_loss += val_classify_loss.item()
-                right_preds, batch_len = accumulated_accuracy(val_classify_preds.cpu().numpy(), val_label.cpu().numpy())
                 confusMat.updateMat(val_classify_preds.cpu().numpy(), val_label.cpu().numpy())
             val_step += 1
 
@@ -168,8 +168,8 @@ for step in range(STEP):
               f"F1: {round(f1, 6)}  MR: {round(mr, 6)}  MP: {round(mp, 6)}  Time: {round((end-start)/60, 2)}min \n")
 
         # 保存模型
-        save_path = f"./model_points/model_at_epoch-{int((step + 1)/EPOCH)}_.pkl"
-        torch.save(model, save_path)
+        save_path = f"../dataset/round-1-1/model_at_epoch-{int((step + 1)/EPOCH)}_.pt"
+        torch.save(model.state_dict(), save_path)
 
         train_loss = 0
 
