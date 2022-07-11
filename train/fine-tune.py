@@ -178,7 +178,7 @@ for step in range(STEP):
             'model_state_dict': model.state_dict(),
             'optimizer_state_dict': optimizer.state_dict(),
             'loss': loss,
-            'scheduler':scheduler.state_dict()
+            'scheduler': scheduler.state_dict()
         }, save_path)
 
         train_loss = 0

@@ -13,23 +13,27 @@ TEMPER = 1
 
 class Lang:
     # 语料库对象
-    def __init__(self, name):
+    def __init__(self, name="corpus"):
         self.name = name
         self.word2index = {"UNK":0, "SOS":1, "EOS":3}
         self.word2count = {}
         self.index2word = {0:"UNK", 1:"SOS", 2:"EOS"}
         # 词汇表大小
         self.n_words = 3
-        self.index2label = []
-        self.label2index = None
+        self.index2accu = []
+        self.accu2index = None
+        self.index2art = []
+        self.art2index = None
 
     def addSentence(self, sentence):
         for word in sentence:
             self.addWord(word)
 
-    def addLabel(self, label):
-        if label not in self.index2label:
-            self.index2label.append(label)
+    def addLabel(self, accu, article):
+        if accu not in self.index2accu:
+            self.index2accu.append(accu)
+        if article not in self.index2art:
+            self.index2art.append(article)
 
     def addWord(self, word):
         if word not in self.word2index:
@@ -41,8 +45,8 @@ class Lang:
             self.word2count[word] += 1
 
     def update_label2index(self):
-        self.label2index = {accu:idx for idx, accu in enumerate(self.index2label)}
-
+        self.accu2index = {accu: idx for idx, accu in enumerate(self.index2accu)}
+        self.art2index = {art: idx for idx, art in enumerate(self.index2art)}
 
 class ConfusionMatrix:
 
@@ -201,7 +205,7 @@ def hanzi_to_num(hanzi_1):
     return int(thou + res + tmp)
 
 # 过滤掉值小于100的项目
-def filter_dict(data_dict, bound):
+def filter_dict(data_dict, bound=100):
     return {k: v for k, v in data_dict.items() if v >= bound}
 
 # 对字典中的每个项目求和
@@ -223,35 +227,6 @@ def get_filter_symbols(filepath):
     :return:list
     '''
     return list(set([line.strip() for line in open(filepath, 'r', encoding='utf-8').readlines()]))
-
-# law内容过滤
-def filterStr(law):
-    # 删除第一个标点之前的内容
-    pattern_head_content = re.compile(r".*?[，：。,:.]")
-    head_content = pattern_head_content.match(law)
-    if head_content is not None:
-        head_content_span = head_content.span()
-        law = law[head_content_span[1]:]
-
-    # 删除“讼诉机关认为，......”
-    pattern_3 = re.compile(r"[，。]公诉机关")
-    content = pattern_3.search(law)
-    if content is not None:
-        content_span = content.span()
-        law = law[:content_span[0]+1]
-
-    # 删除"。...事实，"
-    pattern_3 = re.compile(r"。.{2,8}事实，")
-    content = pattern_3.search(law)
-    if content is not None:
-        content_span = content.span()
-        law = law[:content_span[0]]
-
-    # 删除括号及括号内的内容
-    pattern_bracket = re.compile(r"[<《【\[(（〔].*?[〕）)\]】》>]")
-    law = pattern_bracket.sub("", law)
-
-    return law
 
 # 生成acc2desc字典
 def get_acc_desc(file_path):

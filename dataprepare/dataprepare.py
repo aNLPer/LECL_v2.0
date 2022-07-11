@@ -1,4 +1,5 @@
 # coding:utf-8
+import configparser
 import os
 import pickle
 import re
@@ -6,17 +7,120 @@ import json
 import thulac
 import utils.commonUtils as commonUtils
 from utils.commonUtils import Lang
+from utils import Law
 from transformers import BertModel, BertTokenizer
-
 import numpy as np
 import operator
 
-BATH_DATA_PATH = "..\dataset\CAIL-SMALL"
+config = configparser.ConfigParser()
+print("read project config......")
+config.read("../config.cfg")
+file_names = ["train", "test"]
+folders = ["CAIL-SMALL", "CAIL-LARGE"]
+data_base_path = config.get("dataprepare", "data_base_path")
+
+
+def data_filter():
+    """
+    根据文本长度、样本频率过滤数据集
+    :param source_path:
+    :param target_path:
+    :return:
+    """
+    for folder in folders:
+        dict_articles = {}  # 法律条款：数量
+        dict_accusations = {}  # 指控：数量
+        for i in range(len(file_names)):
+            print(f'{folder}/{file_names[i]}.json statistic beginning')
+            with open(os.path.join(data_base_path, folder, f"{file_names[i]}.json"), 'r', encoding='utf-8') as f:
+                for line in f:
+                    example = json.loads(line)
+                    example_articles = example['meta']['relevant_articles']
+                    example_accusation = example['meta']['accusation']
+                    example_fact = example['fact']
+                    # 仅统计单条款、单指控、仅一审的案件的指控和条款
+                    if len(example_articles) == 1 and \
+                            len(example_accusation) == 1 and \
+                            '二审' not in example_fact and \
+                            len(example_fact) > 10:
+                        if dict_articles.__contains__(example_articles[0]):
+                            dict_articles[example_articles[0]] += 1
+                        else:
+                            dict_articles.update({example_articles[0]: 1})
+                        if dict_accusations.__contains__(example_accusation[0]):
+                            dict_accusations[example_accusation[0]] += 1
+                        else:
+                            dict_accusations.update({example_accusation[0]: 1})
+            print(f'{folder}/{file_names[i]}.json statistic over')
+
+        # 过滤掉频次小于100的条款和指控
+        dict_articles = commonUtils.filter_dict(dict_articles)
+        dict_accusations = commonUtils.filter_dict(dict_accusations)
+
+        articles_sum = commonUtils.sum_dict(dict_articles)
+        accusation_sum = commonUtils.sum_dict(dict_accusations)
+
+        print('filter begining......')
+        while articles_sum != accusation_sum:
+            dict_accusations = commonUtils.reset_dict(dict_accusations)
+            dict_articles = commonUtils.reset_dict(dict_articles)
+            for i in range(len(file_names)):
+                with open(os.path.join(data_base_path, folder, f"{file_names[i]}.json"), 'r', encoding='utf-8') as f:
+                    for line in f:
+                        example = json.loads(line)
+                        example_articles = example['meta']['relevant_articles']
+                        example_accusation = example['meta']['accusation']
+                        example_fact = example['fact']
+                        if len(example_articles) == 1 and \
+                                len(example_accusation) == 1 and \
+                                '二审' not in example_fact:
+                            # 该案件对应的article和accusation频率都大于100
+                            if dict_articles.__contains__(example_articles[0]) and \
+                                    dict_accusations.__contains__(example_accusation[0]) and \
+                                    len(example_fact) > 10:
+                                dict_articles[example_articles[0]] += 1
+                                dict_accusations[example_accusation[0]] += 1
+                            else:
+                                continue
+            dict_articles = commonUtils.filter_dict(dict_articles)
+            dict_accusations = commonUtils.filter_dict(dict_accusations)
+
+            articles_sum = commonUtils.sum_dict(dict_articles)
+            accusation_sum = commonUtils.sum_dict(dict_accusations)
+
+            print('articles_num: ' + str(len(dict_articles)))
+            print('article_sum: ' + str(articles_sum))
+
+            print('accusation_num=' + str(len(dict_accusations)))
+            print('accusation_sum: ' + str(accusation_sum))
+            print("\n\n")
+
+        for i in range(len(file_names)):
+            f1 = open(os.path.join(data_base_path, folder, f"{file_names[i]}_filtered.json"), "w", encoding="utf-8")
+            with open(os.path.join(data_base_path, folder, f"{file_names[i]}.json"), 'r', encoding='utf-8') as f:
+                for line in f:
+                    example = json.loads(line)
+                    example_articles = example['meta']['relevant_articles']
+                    example_accusation = example['meta']['accusation']
+                    example_fact = example['fact']
+                    if len(example_articles) == 1 and \
+                            len(example_accusation) == 1 and \
+                            '二审' not in example_fact and \
+                            len(example_fact) >= 10:
+                        # 该案件对应的article和accusation频率都大于100
+                        if dict_articles.__contains__(example_articles[0]) and \
+                                dict_accusations.__contains__(example_accusation[0]) and \
+                                len(example_fact) > 10:
+                            f1.write(line)
+                        else:
+                            continue
+                f1.close()
+        print('filter over......')
 
 # 构造数据集
-def getData(resource_path, target_path, acc2desc=None):
+def data_process():
     '''
-    构造数据集：[[case_desc,case_desc,...], "acc", "acc_desc"]
+    构造数据集：[case_desc, "acc", "article","penalty"]
     # 分词
     # 去除特殊符号
     # 去除停用词
@@ -27,60 +131,90 @@ def getData(resource_path, target_path, acc2desc=None):
     :param acc2desc: 指控：指控描述 （字典）
     :return: [[[case_desc,case_desc,...], "acc", "acc_desc"],]
     '''
+
     # 加载分词器
     # thu = thulac.thulac(user_dict="Thuocl_seg.txt", seg_only=True)
+    # 加载停用词表
+    # stopwords = commonUtils.get_filter_symbols("stop_word.txt")
+    # 加载标点
+    # punctuations = commonUtils.get_filter_symbols("punctuation.txt")
     # 加载特殊符号
     special_symbols = commonUtils.get_filter_symbols("special_symbol.txt")
-    # 加载停用词表
-    stopwords = commonUtils.get_filter_symbols("stop_word.txt")
-    # 加载标点
-    punctuations = commonUtils.get_filter_symbols("punctuation.txt")
-    fw = open(target_path, "w", encoding="utf-8")
-    count = 0
-    with open(resource_path, "r", encoding="utf-8") as f:
-        for line in f:
-            count += 1
-            item = [] # 单条训练数据
-            example = json.loads(line)
-            # 过滤law article内容
-            example_fact = commonUtils.filterStr(example["fact"])
-            # 分词,去除特殊符号
-            example_fact_1 = [char for char in example_fact if char not in special_symbols]
-            # example_fact_1 = [word for word in thu.cut(example_fact, text=True).split(" ") if word not in special_symbols]
-            #example_fact_1 = [re.sub(r"\d+", "num", word) for word in example_fact_1]
-            #example_fact_1 = [word for word in example_fact_1
-            #                  if word not in ["x年", "x月", "x日", "下午", "上午", "凌晨", "晚", "晚上", "x时", "x分", "许"]]
-            # 去除停用词
-            # example_fact_2 = [word for word in example_fact_1 if word not in stopwords]
-            # 去除标点
-            # example_fact_3 = [word for word in example_fact_1 if word not in punctuations and word not in stopwords]
-            # 去除停用词和标点
-            #example_fact_4 = [word for word in example_fact_1 if word not in punctuations and word not in stopwords]
-            # facts = [example_fact_3, example_fact_4]
-            # item.append(example_fact_2)
-            # item.append(example_fact_3)
-            if len("".join(example_fact_1))<10:
-                continue
-            item.append("".join(example_fact_1))
-            item.append(example['meta']['accusation'][0].strip())
-            # 指控描述
-            if acc2desc != None:
-                acc_desc = acc2desc[example['meta']['accusation'][0]]
-                # # 指控描述分词，去除标点、停用词
-                # acc_desc = [word for word in thu.cut(acc_desc, text=True).split(" ")
-                #             if word not in stopwords and word not in punctuations]
-                item.append(acc_desc)
-            list_str = json.dumps(item, ensure_ascii=False)
-            fw.write(list_str+"\n")
-            if count%5000==0:
-                print(f"已有{count}条数据被处理")
-    fw.close()
+    for folder in folders:
+        lang = Lang(folder)
+        for file in file_names:
+            print(f"start processing data in folder {folder}/{file}_filtered.json")
+            fw = open(os.path.join(data_base_path, folder, f"{file}_processed.txt"), "w", encoding="utf-8")
+            count = 0
+            with open(os.path.join(data_base_path, folder, f"{file}_filtered.json"), "r", encoding="utf-8") as f:
+                for line in f:
+                    count += 1
+                    item = [] # 单条训练数据
+                    example = json.loads(line)
+                    # 过滤law article内容
+                    example_fact = Law.filterStr(example["fact"])
+                    example_penalty = example["meta"]["term_of_imprisonment"]
+                    # 去除特殊符号
+                    example_fact_1 = [char for char in example_fact if char not in special_symbols]
+                    lang.addLabel(example["meta"]['accusation'][0], example["meta"]['relevant_articles'][0])
+                    lang.update_label2index()
+                    # example_fact_1 = [word for word in thu.cut(example_fact, text=True).split(" ") if word not in special_symbols]
+                    #example_fact_1 = [re.sub(r"\d+", "num", word) for word in example_fact_1]
+                    #example_fact_1 = [word for word in example_fact_1
+                    #                  if word not in ["x年", "x月", "x日", "下午", "上午", "凌晨", "晚", "晚上", "x时", "x分", "许"]]
+                    # 去除停用词
+                    # example_fact_2 = [word for word in example_fact_1 if word not in stopwords]
+                    # 去除标点
+                    # example_fact_3 = [word for word in example_fact_1 if word not in punctuations and word not in stopwords]
+                    # 去除停用词和标点
+                    #example_fact_4 = [word for word in example_fact_1 if word not in punctuations and word not in stopwords]
+                    # facts = [example_fact_3, example_fact_4]
+                    # item.append(example_fact_2)
+                    # item.append(example_fact_3)
+                    if len(example_fact_1)<10:
+                        continue
+                    item.append("".join(example_fact_1).strip())
+                    item.append(lang.accu2index[example['meta']['accusation'][0]])
+                    item.append(lang.art2index[example['meta']['relevant_articles'][0]])
+                    if (example_penalty["death_penalty"] == True or example_penalty["life_imprisonment"] == True):
+                        item.append(0)
+                    elif example_penalty["imprisonment"] > 10 * 12:
+                         item.append(1)
+                    elif example_penalty["imprisonment"] > 7 * 12:
+                         item.append(2)
+                    elif example_penalty["imprisonment"] > 5 * 12:
+                         item.append(3)
+                    elif example_penalty["imprisonment"] > 3 * 12:
+                         item.append(4)
+                    elif example_penalty["imprisonment"] > 2 * 12:
+                         item.append(5)
+                    elif example_penalty["imprisonment"] > 1 * 12:
+                         item.append(6)
+                    elif example_penalty["imprisonment"] > 9:
+                         item.append(7)
+                    elif example_penalty["imprisonment"] > 6:
+                         item.append(8)
+                    elif example_penalty["imprisonment"] > 0:
+                         item.append(9)
+                    else:
+                         item.append(10)
+                    # 指控描述
+                    list_str = json.dumps(item, ensure_ascii=False)
+                    fw.write(list_str+"\n")
+                    if count%5000==0:
+                        print(f"已有{count}条数据被处理")
+            fw.close()
+        lang.update_label2index()
+        # 将langs序列化
+        f = open(os.path.join(data_base_path, folder, "lang.pkl"), "wb")
+        pickle.dump(lang, f)
+        f.close()
 
 # 统计语料库
-def getLang(lang_name):
-    lang = Lang(lang_name)
+def getLang(folder):
+    lang = Lang(folder)
     print("start statistic train data......")
-    fr = open("..\dataset\CAIL-SMALL\data_train_processed.txt", "r", encoding="utf-8")
+    fr = open(os.path.join(data_base_path, folder, "train_d.json"), "r", encoding="utf-8")
     count = 0
     for line in fr:
         if line.strip() == "":
@@ -113,7 +247,7 @@ def make_accu2case_dataset(filename):
 def word2Index(file_path, lang, acc2id):
     # 数据集
     fi = open(file_path, "r", encoding="utf-8")
-    fo = open(os.path.join(BATH_DATA_PATH, "data_train_forModel.txt"), "w", encoding="utf-8")
+    fo = open(os.path.join(data_base_path, "data_train_forModel.txt"), "w", encoding="utf-8")
     count = 0
     for line in fi:
         count += 1
@@ -246,6 +380,32 @@ def val_test_datafilter(resourcefile, targetflie):
 
 
 if __name__=="__main__":
+    # 过滤原始数据集
+    # data_filter()
+    #
+    # langs = data_process()
+    # print("end")
+    accus_total = []
+    f = open("../dataset/CAIL-SMALL/lang.pkl", "rb")
+    lang_s = pickle.load(f)
+    f.close()
+    f = open("../dataset/CAIL-LARGE/lang.pkl", "rb")
+    lang_l = pickle.load(f)
+    f.close()
+    accus_s = lang_s.index2accu
+    accus_l = lang_l.index2accu
+    accus_total.extend(accus_l)
+    accus_total.extend(accus_s)
+    accus_total = list(set(accus_total))
+    with open("./accusation_classified_v2_2.txt", "r", encoding="utf-8") as f:
+        accus = []
+        for line in f:
+            c = line.split(" ")
+            accus.extend(c[1:])
+        accus = list(set(accus))
+    for i in accus_total:
+        if i not in accus:
+            print(i)
     # # 生成训练数据集
     # data_path = os.path.join(BATH_DATA_PATH, "data_train_filtered.json")
     # # acc_desc = commonUtils.get_acc_desc("accusation_description.json")
@@ -323,10 +483,10 @@ if __name__=="__main__":
     #                                        accu2category=accu2category)
     #
     # print(seq)
-    resourcefile = "../dataset/CAIL-SMALL/data_valid_filtered.json"
-    targetfile = "../dataset/CAIL-SMALL/data_valid_processed.txt"
-    # val_test_datafilter(resourcefile, targetfile)
-    getData(resourcefile, targetfile)
+    # resourcefile = "../dataset/CAIL-SMALL/data_valid_filtered.json"
+    # targetfile = "../dataset/CAIL-SMALL/data_valid_processed.txt"
+    # # val_test_datafilter(resourcefile, targetfile)
+    # getData(resourcefile, targetfile)
 
 
 
