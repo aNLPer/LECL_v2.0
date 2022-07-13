@@ -15,7 +15,7 @@ import operator
 config = configparser.ConfigParser()
 print("read project config......")
 config.read("../config.cfg")
-file_names = ["train", "test"]
+file_names = ["test", "train"]
 folders = ["CAIL-SMALL", "CAIL-LARGE"]
 data_base_path = config.get("dataprepare", "data_base_path")
 
@@ -117,7 +117,7 @@ def data_filter():
                 f1.close()
         print('filter over......')
 
-# 构造数据集
+# 构造数据集并获取语料库信息
 def data_process():
     '''
     构造数据集：[case_desc, "acc", "article","penalty"]
@@ -133,11 +133,14 @@ def data_process():
     '''
 
     # 加载分词器
-    # thu = thulac.thulac(user_dict="Thuocl_seg.txt", seg_only=True)
+    thu = thulac.thulac(user_dict="Thuocl_seg.txt", seg_only=True)
     # 加载停用词表
-    # stopwords = commonUtils.get_filter_symbols("stop_word.txt")
+    stopwords = []
+    for n in os.listdir("./stopwords"):
+        stopwords.extend(commonUtils.get_filter_symbols(os.path.join("./stopwords", n)))
+    stopwords = list(set(stopwords))
     # 加载标点
-    # punctuations = commonUtils.get_filter_symbols("punctuation.txt")
+    punctuations = commonUtils.get_filter_symbols("punctuation.txt")
     # 加载特殊符号
     special_symbols = commonUtils.get_filter_symbols("special_symbol.txt")
     for folder in folders:
@@ -151,62 +154,90 @@ def data_process():
                     count += 1
                     item = [] # 单条训练数据
                     example = json.loads(line)
+
                     # 过滤law article内容
                     example_fact = Law.filterStr(example["fact"])
-                    example_penalty = example["meta"]["term_of_imprisonment"]
+                    if folder == "CAIL-LARGE":
+                        example_fact = example_fact.strip()
+                        pattern = re.compile(r"\n")
+                        content = pattern.search(example_fact)
+                        if content is not None:
+                            content_span = content.span()
+                            example_fact = example_fact[:content_span[0]].strip()
+
                     # 去除特殊符号
-                    example_fact_1 = [char for char in example_fact if char not in special_symbols]
-                    lang.addLabel(example["meta"]['accusation'][0], example["meta"]['relevant_articles'][0])
-                    lang.update_label2index()
-                    # example_fact_1 = [word for word in thu.cut(example_fact, text=True).split(" ") if word not in special_symbols]
-                    #example_fact_1 = [re.sub(r"\d+", "num", word) for word in example_fact_1]
-                    #example_fact_1 = [word for word in example_fact_1
-                    #                  if word not in ["x年", "x月", "x日", "下午", "上午", "凌晨", "晚", "晚上", "x时", "x分", "许"]]
-                    # 去除停用词
-                    # example_fact_2 = [word for word in example_fact_1 if word not in stopwords]
-                    # 去除标点
-                    # example_fact_3 = [word for word in example_fact_1 if word not in punctuations and word not in stopwords]
-                    # 去除停用词和标点
-                    #example_fact_4 = [word for word in example_fact_1 if word not in punctuations and word not in stopwords]
-                    # facts = [example_fact_3, example_fact_4]
-                    # item.append(example_fact_2)
-                    # item.append(example_fact_3)
-                    if len(example_fact_1)<10:
+                    example_fact = [char for char in example_fact if char not in special_symbols and
+                                    char not in ["\n", "\r"]]
+                    example_fact = "".join(example_fact)
+
+                    # 删除过短文本
+                    if len(example_fact) < 10:
                         continue
-                    item.append("".join(example_fact_1).strip())
-                    item.append(lang.accu2index[example['meta']['accusation'][0]])
-                    item.append(lang.art2index[example['meta']['relevant_articles'][0]])
+
+                    # 分词
+                    example_fact_seg = [word.strip() for word in thu.cut(example_fact, text=True).split(" ")]
+                    # 处理数字和年时间
+                    example_fact_seg = [re.sub(r"\d+?[年月日时点分]", "num", word) for word in example_fact_seg]
+                    example_fact_seg = [word for word in example_fact_seg
+                                        if word not in ["num", "下午", "上午", "早上", "凌晨", "晚", "晚上", "许"] and "num" not in word]
+
+                    # 去除标点
+                    example_fact_seg = [word for word in example_fact_seg if word not in punctuations]
+
+                    item.append("".join(example_fact_seg))
+
+                    # 去除停用词
+                    example_fact_seg = [word for word in example_fact_seg if word not in stopwords]
+
+                    # 删除过短文本
+                    if len(example_fact_seg) < 10:
+                        continue
+
+                    item.append(example_fact_seg)
+
+                    # 统计训练数据集语料信息
+                    if file == "train":
+                        lang.addSentence(example_fact_seg)
+
+                    # 添加标签
+                    example_accu = example["meta"]['accusation'][0]
+                    example_accu = example_accu.replace("[", "")
+                    example_accu = example_accu.replace("]", "")
+                    example_art = example["meta"]['relevant_articles'][0]
+                    lang.addLabel(example_accu, example_art)
+                    lang.update_label2index()
+                    item.append(lang.accu2index[example_accu])
+                    item.append(lang.art2index[example_art])
+                    example_penalty = example["meta"]["term_of_imprisonment"]
                     if (example_penalty["death_penalty"] == True or example_penalty["life_imprisonment"] == True):
                         item.append(0)
                     elif example_penalty["imprisonment"] > 10 * 12:
-                         item.append(1)
+                        item.append(1)
                     elif example_penalty["imprisonment"] > 7 * 12:
-                         item.append(2)
+                        item.append(2)
                     elif example_penalty["imprisonment"] > 5 * 12:
-                         item.append(3)
+                        item.append(3)
                     elif example_penalty["imprisonment"] > 3 * 12:
-                         item.append(4)
+                        item.append(4)
                     elif example_penalty["imprisonment"] > 2 * 12:
-                         item.append(5)
+                        item.append(5)
                     elif example_penalty["imprisonment"] > 1 * 12:
-                         item.append(6)
+                        item.append(6)
                     elif example_penalty["imprisonment"] > 9:
-                         item.append(7)
+                        item.append(7)
                     elif example_penalty["imprisonment"] > 6:
-                         item.append(8)
+                        item.append(8)
                     elif example_penalty["imprisonment"] > 0:
-                         item.append(9)
+                        item.append(9)
                     else:
-                         item.append(10)
+                        item.append(10)
                     # 指控描述
                     list_str = json.dumps(item, ensure_ascii=False)
                     fw.write(list_str+"\n")
                     if count%5000==0:
                         print(f"已有{count}条数据被处理")
             fw.close()
-        lang.update_label2index()
-        # 将langs序列化
-        f = open(os.path.join(data_base_path, folder, "lang.pkl"), "wb")
+        f = open(f"./lang-{folder}.pkl", "wb")
         pickle.dump(lang, f)
         f.close()
 
@@ -382,30 +413,9 @@ def val_test_datafilter(resourcefile, targetflie):
 if __name__=="__main__":
     # 过滤原始数据集
     # data_filter()
-    #
-    # langs = data_process()
-    # print("end")
-    accus_total = []
-    f = open("../dataset/CAIL-SMALL/lang.pkl", "rb")
-    lang_s = pickle.load(f)
-    f.close()
-    f = open("../dataset/CAIL-LARGE/lang.pkl", "rb")
-    lang_l = pickle.load(f)
-    f.close()
-    accus_s = lang_s.index2accu
-    accus_l = lang_l.index2accu
-    accus_total.extend(accus_l)
-    accus_total.extend(accus_s)
-    accus_total = list(set(accus_total))
-    with open("./accusation_classified_v2_2.txt", "r", encoding="utf-8") as f:
-        accus = []
-        for line in f:
-            c = line.split(" ")
-            accus.extend(c[1:])
-        accus = list(set(accus))
-    for i in accus_total:
-        if i not in accus:
-            print(i)
+
+    langs = data_process()
+
     # # 生成训练数据集
     # data_path = os.path.join(BATH_DATA_PATH, "data_train_filtered.json")
     # # acc_desc = commonUtils.get_acc_desc("accusation_description.json")

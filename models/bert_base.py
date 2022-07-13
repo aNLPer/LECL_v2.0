@@ -2,6 +2,7 @@ import torch
 import torch.nn as nn
 from transformers import BertModel, BertConfig
 
+
 class ContrasBert(nn.Module):
     def __init__(self, hidden_size, label_size):
         super(ContrasBert, self).__init__()

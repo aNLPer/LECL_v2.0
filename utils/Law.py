@@ -31,5 +31,5 @@ def filterStr(law):
 
 
 if __name__=="__main__":
-    pass
+    print("\n\tsfaf".strip())
 
