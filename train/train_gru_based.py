@@ -93,7 +93,7 @@ for step in range(STEP):
         seq_lens = []
         for tensor in seqs[i]:
             seq_lens.append(tensor.shape[0])
-        padded_input_ids = pad_sequence(seqs[i], batch_first=True)
+        padded_input_ids = pad_sequence(seqs[i], batch_first=True).to(device)
 
         charge_vecs, charge_preds, article_preds, penalty_preds = model(padded_input_ids, seq_lens)
         charge_vecs_outputs.append(charge_vecs)
