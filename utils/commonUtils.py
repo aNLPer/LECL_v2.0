@@ -358,6 +358,23 @@ def train_distloss_fun(outputs, radius = 10):
     return posi_pairs_dist/batch_size, \
            neg_pairs_dist/batch_size
 
+def penalty_constrain(outputs, radius = 10):
+    """
+        :param outputs: [posi_size, batch_size/posi_size, hidden_dim]
+        :param radius: 大于radius的预测刑期优化
+        :return:
+        """
+    posi_size = outputs.shape[0]
+    batch_size = outputs.shape[1]
+    y = torch.zeros(outputs.shape[1])
+    # 正样本距离
+    penalty_constrain_loss = 0
+    for i in range(posi_size - 1):
+        for j in range(i + 1, posi_size):
+            dist = F.pairwise_distance(outputs[i], outputs[j])
+            penalty_constrain_loss += torch.sum(torch.where(dist>radius, dist, y))
+    return penalty_constrain_loss
+
 def accumulated_accuracy(preds, labels):
     pred_flat = np.argmax(preds, axis=1).flatten()
     labels_flat = labels.flatten()

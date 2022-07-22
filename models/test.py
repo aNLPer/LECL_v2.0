@@ -1,10 +1,12 @@
 import torch
-from models import GRULJP
+import torch.nn.functional as F
 
-gru = GRULJP(voc_size=10, hidden_size=8, num_layers=2, dropout=0.5, charge_label_size=3, article_label_size=3, penalty_label_size=3)
+inputs_1 = torch.randn(10, 20, requires_grad=True)
+inputs_2 = torch.randn(10, 20, requires_grad=True)
 
-input_ids = [torch.tensor([1,2,4]).long(),torch.tensor([3,2]).long()]
+dist = torch.pairwise_distance(inputs_1, inputs_2)
+print(dist)
 
-encs = gru(input_ids)
-print(encs)
-
+y = torch.zeros(dist.shape[0], dtype=torch.float32)
+end = torch.where(dist>6, dist,y)
+print(end)

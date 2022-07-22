@@ -8,7 +8,7 @@ from models.models import GRULJP
 from timeit import default_timer as timer
 from torch.nn.utils.rnn import pad_sequence
 from dataprepare.dataprepare import make_accu2case_dataset, load_classifiedAccus
-from utils.commonUtils import pretrain_data_loader, train_distloss_fun, Lang
+from utils.commonUtils import pretrain_data_loader, train_distloss_fun, penalty_constrain, Lang
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -21,10 +21,11 @@ BATCH_SIZE = int(config.get(section, "BATCH_SIZE"))
 HIDDEN_SIZE = int(config.get(section, "HIDDEN_SIZE"))
 POSITIVE_SIZE = int(config.get(section, "POSITIVE_SIZE"))
 SIM_ACCU_NUM = int(config.get(section, "SIM_ACCU_NUM"))
-PENALTY_LABEL_SIZE = int(config.get(section,"penalty_label_size"))
+PENALTY_LABEL_SIZE = int(config.get(section,"PENALTY_LABEL_SIZE"))
 LR = float(config.get(section, "LR"))
 STEP = int(config.get(section, "STEP"))
-
+CHARGE_RADIUS = int(config.get(section, "CHARGE_RADIUS"))
+PENALTY_RADIUS = int(config.get(section, "PENALTY_RADIUS"))
 
 corpus_info_path = "../dataprepare/lang-CAIL-SMALL.pkl"
 data_path = "../dataset/CAIL-SMALL/train_processed.txt"
@@ -71,7 +72,7 @@ for step in range(STEP):
     if step%EPOCH == 0:
         start = timer()
     start = timer()
-    seqs, accu_labels, article_label, penalty_labels = pretrain_data_loader(accu2case=accu2case,
+    seqs, accu_labels, article_labels, penalty_labels = pretrain_data_loader(accu2case=accu2case,
                                           batch_size=BATCH_SIZE,
                                           lang=lang,
                                           positive_size=POSITIVE_SIZE,
@@ -87,7 +88,9 @@ for step in range(STEP):
 
     # 计算模型的输出
     charge_vecs_outputs = []
-    classify_outputs = []
+    charge_preds_outputs = []
+    article_preds_outputs = []
+    penalty_preds_outputs = []
     for i in range(POSITIVE_SIZE):
         # [batch_size/2, hidden_size]、[batch_size/2, label_size]
         seq_lens = []
@@ -97,16 +100,38 @@ for step in range(STEP):
 
         charge_vecs, charge_preds, article_preds, penalty_preds = model(padded_input_ids, seq_lens)
         charge_vecs_outputs.append(charge_vecs)
-        classify_outputs.append(charge_preds)
+        charge_preds_outputs.append(charge_preds)
+        article_preds_outputs.append(article_preds)
+        penalty_preds_outputs.append(penalty_preds)
 
-    # 计算误差
-    contra_outputs = torch.stack(contra_outputs, dim=0)  # 2 * [batch_size/posi_size, hidden_size] -> [posi_size, batch_size/posi_size, hidden_size]
-    classify_outputs = torch.cat(classify_outputs, dim=0)  # [posi_size, batch_size/posi_size, label_size] -> [batch_size, label_size]
-    label_ids = torch.tensor(label_ids * 2).to(device) # [batch_size,]
-    posi_pairs_dist, neg_pairs_dist = train_distloss_fun(contra_outputs, radius=M)
-    classify_loss = criterion(classify_outputs, label_ids)
+    # charge_vecs的对比误差
+    contra_outputs = torch.stack(charge_vecs_outputs, dim=0)  # 2 * [batch_size/posi_size, hidden_size] -> [posi_size, batch_size/posi_size, hidden_size]
+    posi_pairs_dist, neg_pairs_dist = train_distloss_fun(contra_outputs, radius=CHARGE_RADIUS)
 
-    loss = posi_pairs_dist+neg_pairs_dist+classify_loss
+    # 指控分类误差
+    charge_preds_outputs = torch.cat(charge_preds_outputs, dim=0)  # [posi_size, batch_size/posi_size, label_size] -> [batch_size, label_size]
+    accu_labels = torch.tensor(accu_labels)
+    accu_labels = torch.cat(accu_labels, dim=0)
+    charge_preds_loss = criterion(charge_preds_outputs, accu_labels)
+
+    # 法律条款预测误差
+    article_preds_outputs = torch.cat(article_preds_outputs, dim=0)
+    article_labels = torch.tensor(article_labels)
+    article_labels = torch.cat(article_labels, dim=0)
+    article_preds_loss = criterion(article_preds_outputs, article_labels)
+
+    # 刑期预测结果约束（相似案件的刑期应该相近）
+    penalty_contrains = torch.torch.stack(penalty_preds_outputs, dim=0)
+    penalty_contrains_loss = penalty_constrain(penalty_contrains, PENALTY_RADIUS)
+
+
+    # 刑期预测误差
+    penalty_preds_outputs = torch.cat(penalty_preds_outputs, dim=0)
+    penalty_labels = torch.tensor(penalty_labels)
+    penalty_labels = torch.cat(penalty_labels, dim=0)
+    penalty_preds_loss = criterion(penalty_preds_outputs, penalty_labels)
+
+    loss = posi_pairs_dist+neg_pairs_dist+charge_preds_loss+article_preds_loss+penalty_preds_loss
     train_loss += loss.item()
 
     # 反向传播计算梯度
