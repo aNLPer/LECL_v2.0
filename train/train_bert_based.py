@@ -1,5 +1,5 @@
 from transformers import BertModel, BertTokenizer, get_linear_schedule_with_warmup, AdamW
-from utils.commonUtils import pretrain_data_loader, train_distloss_fun, Lang, \
+from utils.commonUtils import contras_data_loader, train_distloss_fun, Lang, \
     data_loader, accumulated_accuracy, prepare_valid_data, ConfusionMatrix
 from dataprepare.dataprepare import make_accu2case_dataset, load_classifiedAccus
 from models.bert_base import ContrasBert
