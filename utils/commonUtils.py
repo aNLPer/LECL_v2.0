@@ -242,7 +242,7 @@ def get_acc_desc(file_path):
 # 获取batch
 def pretrain_data_loader(accu2case,
                          batch_size,
-                         label2index,
+                         lang,
                          positive_size=2,
                          sim_accu_num=2,
                          category2accu=None,
@@ -273,6 +273,7 @@ def pretrain_data_loader(accu2case,
     while count<sim_accu_num-1:
         for accu in sample_accus:
             # 获取相似指控
+            accu = lang.index2accu[accu]
             sim_accu_ = [category2accu[c] for c in accu2category[accu]]
             temp = []
             for l in sim_accu_:
@@ -303,6 +304,10 @@ def pretrain_data_loader(accu2case,
     label_ids = [label2index[label] for label in selected_accus]
 
     return seq, label_ids
+
+
+
+
 
 def data_loader(seq, label, batch_size):
     num_examples = len(seq)

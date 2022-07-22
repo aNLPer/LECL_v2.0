@@ -1,5 +1,4 @@
 import os
+from models.models import GRULJP
 
-stopwords = []
-for f in os.listdir("./dataprepare/stopwords"):
-    print(f)
+gru = GRULJP()

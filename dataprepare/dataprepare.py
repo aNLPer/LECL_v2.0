@@ -264,15 +264,15 @@ def getLang(folder):
     f.close()
     print("train data statistic end.")
 
-def make_accu2case_dataset(filename):
+def make_accu2case_dataset(filename, lang, input_idx, accu_idx):
     accu2case = {}
     with open(filename, "r", encoding="utf-8") as f:
         for line in f:
             item = json.loads(line)
-            if item[1] not in accu2case:
-                accu2case[item[1]] = [item[0]]
+            if item[accu_idx] not in accu2case:
+                accu2case[item[accu_idx]] = [[lang.word2index[w] for w in item[input_idx]]]
             else:
-                accu2case[item[1]].append(item[0])
+                accu2case[item[accu_idx]].append([lang.word2index[w] for w in item[input_idx]])
     return accu2case
 
 def word2Index(file_path, lang, acc2id):
@@ -411,10 +411,11 @@ def val_test_datafilter(resourcefile, targetflie):
 
 
 if __name__=="__main__":
+    # pass
     # 过滤原始数据集
     # data_filter()
 
-    langs = data_process()
+    #langs = data_process()
 
     # # 生成训练数据集
     # data_path = os.path.join(BATH_DATA_PATH, "data_train_filtered.json")
@@ -426,8 +427,9 @@ if __name__=="__main__":
     # 统计训练集语料库生成对象
     # lang_name = "2018_CAIL_SMALL_TRAIN"
     # getLang(lang_name)
-    # f = open("lang_data_train_preprocessed.pkl", "rb")
-    # lang = pickle.load(f)
+    f = open("lang-CAIL-SMALL.pkl", "rb")
+    lang = pickle.load(f)
+    print("end")
     # print(lang.n_words)
     # print(lang.word2index['我'])
 
