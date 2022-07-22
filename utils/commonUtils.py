@@ -394,7 +394,7 @@ def prepare_valid_data(resourcefile, lang):
     with open(resourcefile, "r", encoding="utf-8") as f:
         for line in f:
             example = json.loads(line)
-            seq.append([lang.word2index[w] if w in lang.word2index.keys() else 'UNK' for w in example[1]])
+            seq.append([lang.word2index[w] if w in lang.word2index.keys() else lang.word2index['UNK'] for w in example[1]])
             charge_labels.append(example[2])
             article_labels.append(example[3])
             penaty_labels.append(example[4])
