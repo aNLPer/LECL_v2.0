@@ -20,6 +20,7 @@ class Lang:
         self.index2word = {0:"PAD", 1:"UNK"}
         # 词汇表大小
         self.n_words = 2
+
         self.index2accu = []
         self.accu2index = None
         self.index2art = []

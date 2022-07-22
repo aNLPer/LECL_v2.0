@@ -6,6 +6,9 @@ from transformers import BertModel
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
+class NavieBERt(nn.Module):
+    pass
+
 class GRULJP(nn.Module):
     def __init__(self,
                  charge_label_size,
@@ -105,7 +108,6 @@ class GRULJP(nn.Module):
 
 class BERTLJP(nn.Module):
     def __init__(self,
-                 voc_size, # 词汇表
                  hidden_size, # 隐藏状态size，
                  charge_label_size,
                  article_label_size,

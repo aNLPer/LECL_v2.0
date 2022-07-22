@@ -242,27 +242,25 @@ def data_process():
         f.close()
 
 # 统计语料库
-def getLang(folder):
-    lang = Lang(folder)
-    print("start statistic train data......")
-    fr = open(os.path.join(data_base_path, folder, "train_d.json"), "r", encoding="utf-8")
-    count = 0
-    for line in fr:
-        if line.strip() == "":
-            continue
-        count += 1
-        item = json.loads(line)
-        lang.addSentence(item[0])
-        lang.addLabel(item[1])
-        if count % 5000 == 0:
-            print(f"已统计{count}条数据")
-    lang.update_label2index()
-    fr.close()
-    # 序列化lang
-    f = open("lang_data_train_preprocessed.pkl", "wb")
-    pickle.dump(lang, f)
-    f.close()
-    print("train data statistic end.")
+def getLang(filepath, data_index, langfilename):
+    f = open("lang-CAIL-SMALL.pkl", "rb")
+    o_lang = pickle.load(f)
+
+    lang = Lang()
+    with open(filepath, "r", encoding="utf-8") as f:
+        for line in f:
+            example = json.loads(line)
+            sentence = example[data_index]
+            lang.addSentence(sentence)
+    lang.index2accu = o_lang.index2accu
+    lang.index2art = o_lang.index2art
+    lang.accu2index = o_lang.accu2index
+    lang.art2index = o_lang.art2index
+    fw = open(f"./lang-{langfilename}.pkl", "wb")
+    pickle.dump(lang, fw)
+    fw.close()
+
+
 
 def make_accu2case_dataset(filename, lang, input_idx, accu_idx):
     accu2case = {}
@@ -427,7 +425,7 @@ if __name__=="__main__":
     # 统计训练集语料库生成对象
     # lang_name = "2018_CAIL_SMALL_TRAIN"
     # getLang(lang_name)
-    f = open("lang-CAIL-SMALL.pkl", "rb")
+    f = open("lang-CAIL-SMALL-word-level.pkl", "rb")
     lang = pickle.load(f)
     print("end")
     # print(lang.n_words)

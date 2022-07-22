@@ -30,7 +30,7 @@ CHARGE_RADIUS = int(config.get(section, "CHARGE_RADIUS"))
 PENALTY_RADIUS = int(config.get(section, "PENALTY_RADIUS"))
 LAMDA = float(config.get(section, "LAMDA"))
 
-corpus_info_path = "../dataprepare/lang-CAIL-SMALL.pkl"
+corpus_info_path = "../dataprepare/lang-CAIL-SMALL-word-level.pkl"
 data_path = "../dataset/CAIL-SMALL/train_processed.txt"
 accu_similarity = "../dataprepare/accusation_classified_v2_2.txt"
 
@@ -40,16 +40,19 @@ lang = pickle.load(f)
 f.close()
 
 print("load dataset classified by accusation")
-accu2case = make_accu2case_dataset(data_path, lang=lang, input_idx=1, accu_idx=2)
+accu2case = make_accu2case_dataset(data_path, lang=lang, input_idx=0, accu_idx=2)
 
 print("load accusation similarity sheet")
 category2accu, accu2category = load_classifiedAccus(accu_similarity)
+
 
 model = GRULJP(charge_label_size=len(lang.index2accu),
                article_label_size=len(lang.index2art),
                penalty_label_size=PENALTY_LABEL_SIZE,
                voc_size=lang.n_words,
                hidden_size=HIDDEN_SIZE)
+
+# model =
 model.to(device)
 
 # 定义损失函数
