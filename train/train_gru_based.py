@@ -163,7 +163,7 @@ for step in range(STEP):
         valid_loss = 0
         val_step = 0
         valid_seq, valid_charge_labels, valid_article_labels, valid_penalty_labels = \
-            prepare_valid_data("../dataset/CAIL-SMALL/test_processed.txt")
+            prepare_valid_data("../dataset/CAIL-SMALL/test_processed.txt", lang)
 
         for val_seq, val_charge_label, val_article_label, val_penalty_label in data_loader(valid_seq, valid_charge_labels, valid_article_labels, valid_penalty_labels, batch_size=BATCH_SIZE):
             val_seq_lens = [len(s) for s in val_seq]
