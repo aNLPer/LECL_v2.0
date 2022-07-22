@@ -78,7 +78,7 @@ for step in range(STEP):
                                           accu2category=accu2category)
     batch_enc_ids = []
     batch_enc_atten_mask = []
-    for i in range(POSI_SIZE):
+    for i in range(POSITIVE_SIZE):
         batch_enc = tokenizer.batch_encode_plus(seq[i],
                                     add_special_tokens=False,
                                     max_length=512,

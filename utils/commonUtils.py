@@ -279,7 +279,8 @@ def pretrain_data_loader(accu2case,
             for l in sim_accu_:
                 # 筛选出在数据集中出现的相似指控
                 for i in l:
-                    if i in accus:
+                    if i in lang.accu2index:
+                        i = lang.accu2index[i]
                         temp.append(i)
                 # temp.extend([i for i in l and i in accus])
             # 去除相似指控与selected_accus指控中的重复指控
