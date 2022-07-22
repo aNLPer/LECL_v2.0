@@ -138,7 +138,7 @@ for step in range(STEP):
     penalty_labels = torch.cat(penalty_labels, dim=0).to(device)
     penalty_preds_loss = criterion(penalty_preds_outputs, penalty_labels)
 
-    loss = posi_pairs_dist+neg_pairs_dist+charge_preds_loss+article_preds_loss+penalty_preds_loss+penalty_contrains_loss
+    loss = posi_pairs_dist+neg_pairs_dist+charge_preds_loss+article_preds_loss+penalty_preds_loss+0.1*penalty_contrains_loss
     train_loss += loss.item()
 
     # 反向传播计算梯度
