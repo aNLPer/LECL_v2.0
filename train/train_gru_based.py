@@ -171,9 +171,9 @@ for step in range(STEP):
             val_input_ids = pad_sequence(val_input_ids, batch_first=True).to(device)
             with torch.no_grad():
                 val_charge_vecs, val_charge_preds, val_article_preds, val_penalty_preds = model(val_input_ids, val_seq_lens)
-                val_charge_preds_loss = criterion(val_charge_preds, torch.tensor(val_charge_label))
-                val_article_preds_loss = criterion(val_article_preds, torch.tensor(val_article_label))
-                val_penalty_preds_loss = criterion(val_penalty_preds, torch.tensor(val_penalty_label))
+                val_charge_preds_loss = criterion(val_charge_preds, torch.tensor(val_charge_label).to(device))
+                val_article_preds_loss = criterion(val_article_preds, torch.tensor(val_article_label).to(device))
+                val_penalty_preds_loss = criterion(val_penalty_preds, torch.tensor(val_penalty_label).to(device))
                 valid_loss += val_charge_preds_loss.item()
                 valid_loss += val_article_preds_loss.item()
                 valid_loss += val_penalty_preds_loss.item()
