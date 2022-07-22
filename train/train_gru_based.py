@@ -1,10 +1,12 @@
 import torch
 import pickle
+import json
 import configparser
 import torch.nn as nn
 import torch.optim as optim
 from models.models import GRULJP
 from timeit import default_timer as timer
+from torch.nn.utils.rnn import pad_sequence
 from dataprepare.dataprepare import make_accu2case_dataset, load_classifiedAccus
 from utils.commonUtils import pretrain_data_loader, train_distloss_fun, Lang
 
@@ -76,18 +78,6 @@ for step in range(STEP):
                                           sim_accu_num=SIM_ACCU_NUM,
                                           category2accu=category2accu,
                                           accu2category=accu2category)
-    batch_enc_ids = []
-    batch_enc_atten_mask = []
-    for i in range(POSITIVE_SIZE):
-        batch_enc = tokenizer.batch_encode_plus(seq[i],
-                                    add_special_tokens=False,
-                                    max_length=512,
-                                    truncation=True,
-                                    padding=True,
-                                    return_attention_mask=True,
-                                    return_tensors='pt')
-        batch_enc_ids.append(batch_enc["input_ids"])
-        batch_enc_atten_mask.append(batch_enc["attention_mask"])
 
     # 设置模型状态
     model.train()
@@ -96,14 +86,18 @@ for step in range(STEP):
     optimizer.zero_grad()
 
     # 计算模型的输出
-    contra_outputs = []
+    charge_vecs_outputs = []
     classify_outputs = []
-    for i in range(POSI_SIZE):
+    for i in range(POSITIVE_SIZE):
         # [batch_size/2, hidden_size]、[batch_size/2, label_size]
-        contra_hidden, classify_preds = model(input_ids=batch_enc_ids[i].to(device),
-                                              attention_mask=batch_enc_atten_mask[i].to(device))
-        contra_outputs.append(contra_hidden)
-        classify_outputs.append(classify_preds)
+        seq_lens = []
+        for tensor in seqs[i]:
+            seq_lens.append(tensor.shape[0])
+        padded_input_ids = pad_sequence(seqs[i])
+
+        charge_vecs, charge_preds, article_preds, penalty_preds = model(padded_input_ids, seq_lens)
+        charge_vecs_outputs.append(charge_vecs)
+        classify_outputs.append(charge_preds)
 
     # 计算误差
     contra_outputs = torch.stack(contra_outputs, dim=0)  # 2 * [batch_size/posi_size, hidden_size] -> [posi_size, batch_size/posi_size, hidden_size]

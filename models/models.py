@@ -69,18 +69,13 @@ class GRULJP(nn.Module):
             nn.Linear(4*self.hidden_size, self.penalty_label_size)
         )
 
-    def forward(self, input_ids):
-        seq_lens = []
-        for tensor in input_ids:
-            seq_lens.append(tensor.shape[0])
-        # 填充不等长序列
-        input_ids = pad_sequence(input_ids, batch_first=True)
+    def forward(self, input_ids, seq_lens):
         # [batch_size, seq_length, hidden_size]
         inputs = self.em(input_ids)
 
         inputs_packed = pack_padded_sequence(inputs, seq_lens, batch_first=True, enforce_sorted=False)
         # packed_output
-        outputs_packed, h_n =  self.enc(inputs_packed)
+        outputs_packed, h_n = self.enc(inputs_packed)
 
         # [batch_size, seq_len, 2*hidden_size]
         outputs_unpacked, unpacked_lens = pad_packed_sequence(outputs_packed, batch_first=True)
