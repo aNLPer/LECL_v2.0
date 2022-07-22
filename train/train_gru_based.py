@@ -3,6 +3,7 @@ import pickle
 import json
 import configparser
 import torch.nn as nn
+import numpy as np
 import torch.optim as optim
 from models.models import GRULJP
 from timeit import default_timer as timer
@@ -177,9 +178,9 @@ for step in range(STEP):
                 valid_loss += val_charge_preds_loss.item()
                 valid_loss += val_article_preds_loss.item()
                 valid_loss += val_penalty_preds_loss.item()
-                charge_confusMat.updateMat(val_charge_preds.cpu().numpy(), val_charge_label.cpu().numpy())
-                article_confusMat.updateMat(val_article_preds.cpu().numpy(), val_article_label.cpu().numpy())
-                charge_confusMat.updateMat(val_penalty_preds.cpu().numpy(), val_penalty_label.cpu().numpy())
+                charge_confusMat.updateMat(val_charge_preds.cpu().numpy(), np.array(val_charge_label))
+                article_confusMat.updateMat(val_article_preds.cpu().numpy(), np.array(val_article_label))
+                charge_confusMat.updateMat(val_penalty_preds.cpu().numpy(), np.array(val_penalty_label))
             val_step += 1
 
         train_loss_records.append(train_loss / EPOCH)
