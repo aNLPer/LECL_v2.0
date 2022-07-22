@@ -55,8 +55,8 @@ class ConfusionMatrix:
         混淆矩阵的每一行代表真实标签，每一列代表预测标签
         :param n_class: 类别数目
         """
-        self.__mat = np.zeros((n_class, n_class))
         self.n_class = n_class
+        self.__mat = np.zeros((self.n_class, self.n_class))
         self.n_activated_class = None
         self.class_weights = None
 
@@ -240,7 +240,7 @@ def get_acc_desc(file_path):
 
 
 # 获取batch
-def pretrain_data_loader(accu2case,
+def contras_data_loader(accu2case,
                          batch_size,
                          lang,
                          positive_size=2,
@@ -316,16 +316,16 @@ def pretrain_data_loader(accu2case,
     return seq, accu_labels, article_labels, penalty_labels
 
 
-
-
-
-def data_loader(seq, label, batch_size):
+def data_loader(seq, charge_labels, article_labels, penalty_labels, batch_size):
     num_examples = len(seq)
     indices = list(range(num_examples))
     random.shuffle(indices)  # 样本的读取顺序是随机的
     for i in range(0, num_examples, batch_size):
         ids = indices[i: min(i + batch_size, num_examples)]  # 最后⼀次可能不⾜⼀个batch
-        yield [seq[j] for j in ids], [label[j] for j in ids]
+        yield [seq[j] for j in ids], \
+              [charge_labels[j] for j in ids], \
+              [article_labels[j] for j in ids], \
+              [penalty_labels[j] for j in ids]
 
 def train_distloss_fun(outputs, radius = 10):
     """
@@ -386,18 +386,19 @@ def genConfusMat(confusMat, preds, labels):
     for i in range(len(labels_flat)):
         confusMat[labels_flat[i]][pred_flat[i]] += 1
 
-def prepare_valid_data(resourcefile):
+def prepare_valid_data(resourcefile, lang):
     seq = []
-    label = []
-    f = open("../dataprepare/lang_data_train_preprocessed.pkl", "rb")
-    lang = pickle.load(f)
-    f.close()
+    charge_labels = []
+    article_labels = []
+    penaty_labels = []
     with open(resourcefile, "r", encoding="utf-8") as f:
         for line in f:
             example = json.loads(line)
-            seq.append(example[0])
-            label.append(lang.label2index[example[1]])
-    return seq, label
+            seq.append([lang.word2index[w] if w in lang.word2index.keys() else 'UNK' for w in example[1]])
+            charge_labels.append(example[2])
+            article_labels.append(example[3])
+            penaty_labels.append(example[4])
+    return seq, charge_labels,  article_labels, penaty_labels
 
 
 

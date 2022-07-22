@@ -7,8 +7,9 @@ import torch.optim as optim
 from models.models import GRULJP
 from timeit import default_timer as timer
 from torch.nn.utils.rnn import pad_sequence
+from transformers import get_linear_schedule_with_warmup, AdamW
 from dataprepare.dataprepare import make_accu2case_dataset, load_classifiedAccus
-from utils.commonUtils import pretrain_data_loader, train_distloss_fun, penalty_constrain, Lang
+from utils.commonUtils import contras_data_loader, train_distloss_fun, penalty_constrain, ConfusionMatrix, prepare_valid_data, data_loader, Lang
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -58,21 +59,27 @@ criterion = nn.CrossEntropyLoss()
 #                   eps=1e-8)
 optimizer = optim.Adam(model.parameters(), lr=LR)
 
+# 学习率优化策略
+scheduler = get_linear_schedule_with_warmup(optimizer,
+                                            num_warmup_steps = 500, # Default value in run_glue.py
+                                            num_training_steps = STEP)
+
+
 print("gru based model train start......\n")
 
 train_loss = 0
 train_loss_records = []
 valid_loss_records = []
-valid_acc_records = []
-valid_mp_records = []
-valid_f1_records = []
-valid_mr_records = []
+valid_acc_records = {"charge":[], "article":[], "penalty":[]}
+valid_mp_records = {"charge":[], "article":[], "penalty":[]}
+valid_f1_records = {"charge":[], "article":[], "penalty":[]}
+valid_mr_records = {"charge":[], "article":[], "penalty":[]}
 for step in range(STEP):
     # 随机生成一个batch
     if step%EPOCH == 0:
         start = timer()
     start = timer()
-    seqs, accu_labels, article_labels, penalty_labels = pretrain_data_loader(accu2case=accu2case,
+    seqs, accu_labels, article_labels, penalty_labels = contras_data_loader(accu2case=accu2case,
                                           batch_size=BATCH_SIZE,
                                           lang=lang,
                                           positive_size=POSITIVE_SIZE,
@@ -110,28 +117,27 @@ for step in range(STEP):
 
     # 指控分类误差
     charge_preds_outputs = torch.cat(charge_preds_outputs, dim=0)  # [posi_size, batch_size/posi_size, label_size] -> [batch_size, label_size]
-    accu_labels = torch.tensor(accu_labels)
+    accu_labels = [torch.tensor(l) for l in accu_labels]
     accu_labels = torch.cat(accu_labels, dim=0)
     charge_preds_loss = criterion(charge_preds_outputs, accu_labels)
 
     # 法律条款预测误差
     article_preds_outputs = torch.cat(article_preds_outputs, dim=0)
-    article_labels = torch.tensor(article_labels)
+    article_labels = [torch.tensor(l) for l in article_labels]
     article_labels = torch.cat(article_labels, dim=0)
     article_preds_loss = criterion(article_preds_outputs, article_labels)
 
     # 刑期预测结果约束（相似案件的刑期应该相近）
-    penalty_contrains = torch.torch.stack(penalty_preds_outputs, dim=0)
+    penalty_contrains = torch.stack(penalty_preds_outputs, dim=0)
     penalty_contrains_loss = penalty_constrain(penalty_contrains, PENALTY_RADIUS)
-
 
     # 刑期预测误差
     penalty_preds_outputs = torch.cat(penalty_preds_outputs, dim=0)
-    penalty_labels = torch.tensor(penalty_labels)
+    penalty_labels = [torch.tensor(l) for l in penalty_labels]
     penalty_labels = torch.cat(penalty_labels, dim=0)
     penalty_preds_loss = criterion(penalty_preds_outputs, penalty_labels)
 
-    loss = posi_pairs_dist+neg_pairs_dist+charge_preds_loss+article_preds_loss+penalty_preds_loss
+    loss = posi_pairs_dist+neg_pairs_dist+charge_preds_loss+article_preds_loss+penalty_preds_loss+penalty_contrains_loss
     train_loss += loss.item()
 
     # 反向传播计算梯度
@@ -149,49 +155,64 @@ for step in range(STEP):
     # 训练完一个EPOCH后评价模型
     if (step+1)%EPOCH == 0:
         # 初始化混淆矩阵
-        confusMat = ConfusionMatrix(len(lang.index2label))
+        charge_confusMat = ConfusionMatrix(len(lang.index2accu))
+        article_confusMat = ConfusionMatrix(len(lang.index2art))
+        penalty_confusMat = ConfusionMatrix(PENALTY_LABEL_SIZE)
         # 验证模型在验证集上的表现
         model.eval()
         valid_loss = 0
         val_step = 0
-        valid_seq, valid_label = prepare_valid_data("../dataset/CAIL-SMALL/data_valid_processed.txt")
-        for val_seq, val_label in data_loader(valid_seq, valid_label, batch_size=BATCH_SIZE):
-            val_label = torch.tensor(val_label, dtype=torch.long).to(device)
-            val_seq_enc = tokenizer.batch_encode_plus(val_seq,
-                                                    add_special_tokens=False,
-                                                    max_length=512,
-                                                    truncation=True,
-                                                    padding=True,
-                                                    return_attention_mask=True,
-                                                    return_tensors='pt')
+        valid_seq, valid_charge_labels, valid_article_labels, valid_penalty_labels = \
+            prepare_valid_data("../dataset/CAIL-SMALL/test_processed.txt")
+
+        for val_seq, val_charge_label, val_article_label, val_penalty_label in data_loader(valid_seq, valid_charge_labels, valid_article_labels, valid_penalty_labels, batch_size=BATCH_SIZE):
+            val_seq_lens = [len(s) for s in val_seq]
+            val_input_ids = [torch.tensor(s) for s in val_seq]
+            val_input_ids = pad_sequence(val_input_ids, batch_first=True).to(device)
             with torch.no_grad():
-                val_contra_hidden, val_classify_preds = model(input_ids=val_seq_enc["input_ids"].to(device),
-                                                      attention_mask=val_seq_enc["attention_mask"].to(device))
-                val_classify_loss = criterion(val_classify_preds, val_label)
-                valid_loss += val_classify_loss.item()
-                confusMat.updateMat(val_classify_preds.cpu().numpy(), val_label.cpu().numpy())
+                val_charge_vecs, val_charge_preds, val_article_preds, val_penalty_preds = model(val_input_ids, val_seq_lens)
+                val_charge_preds_loss = criterion(val_charge_preds, torch.tensor(val_charge_label))
+                val_article_preds_loss = criterion(val_article_preds, torch.tensor(val_article_label))
+                val_penalty_preds_loss = criterion(val_penalty_preds, torch.tensor(val_penalty_label))
+                valid_loss += val_charge_preds_loss.item()
+                valid_loss += val_article_preds_loss.item()
+                valid_loss += val_penalty_preds_loss.item()
+                charge_confusMat.updateMat(val_charge_preds.cpu().numpy(), val_charge_label.cpu().numpy())
+                article_confusMat.updateMat(val_article_preds.cpu().numpy(), val_article_label.cpu().numpy())
+                charge_confusMat.updateMat(val_penalty_preds.cpu().numpy(), val_penalty_label.cpu().numpy())
             val_step += 1
-
-        valid_loss = valid_loss/val_step
-        valid_loss_records.append(valid_loss)
-
-        accuracy = confusMat.get_acc() # 根据混淆矩阵求解acc
-        valid_acc_records.append(accuracy)
-
-        f1 = confusMat.getMaF()
-        valid_f1_records.append(f1)
-
-        mr = confusMat.getMaR()
-        valid_mr_records.append(mr)
-
-        mp = confusMat.getMaP()
-        valid_mp_records.append(mp)
 
         train_loss_records.append(train_loss / EPOCH)
 
+        valid_loss = valid_loss/val_step*BATCH_SIZE
+        valid_loss_records.append(valid_loss)
+
+        # acc
+        valid_acc_records['charge'].append(charge_confusMat.get_acc())
+        valid_acc_records['article'].append(article_confusMat.get_acc())
+        valid_acc_records['penalty'].append(penalty_confusMat.get_acc())
+
+        # F1
+        valid_f1_records['charge'].append(charge_confusMat.getMaF())
+        valid_f1_records['article'].append(article_confusMat.getMaF())
+        valid_f1_records['penalty'].append(penalty_confusMat.getMaF())
+
+        # MR
+        valid_mr_records['charge'].append(charge_confusMat.getMaR())
+        valid_mr_records['article'].append(article_confusMat.getMaR())
+        valid_mr_records['penalty'].append(penalty_confusMat.getMaR())
+
+        # MP
+        valid_mp_records['charge'].append(charge_confusMat.getMaP())
+        valid_mp_records['article'].append(article_confusMat.getMaP())
+        valid_mp_records['penalty'].append(penalty_confusMat.getMaP())
+
         end = timer()
-        print(f"Epoch: {int((step + 1)/EPOCH)}  Train_loss: {round(train_loss/EPOCH, 6)}  Valid_loss: {round(valid_loss,6)}   Accuracy: {round(accuracy, 6)}  \n"
-              f"F1: {round(f1, 6)}  MR: {round(mr, 6)}  MP: {round(mp, 6)}  Time: {round((end-start)/60, 2)}min \n")
+        print(f"Epoch: {int((step + 1)/EPOCH)}  Train_loss: {round(train_loss/EPOCH, 6)}  Valid_loss: {round(valid_loss,6)} \n"
+              f"Charge_Acc: {round(charge_confusMat.get_acc(), 6)}  Charge_F1: {round(charge_confusMat.getMaF(), 6)}  Charge_MR: {round(charge_confusMat.getMaR(), 6)}  Charge_MP: {round(charge_confusMat.getMaP(), 6)}\n"
+              f"Article_Acc: {round(article_confusMat.get_acc(), 6)}  Article_F1: {round(article_confusMat.getMaF(), 6)}  Article_MR: {round(article_confusMat.getMaR(), 6)}  Article_MP: {round(article_confusMat.getMaP(), 6)}\n"
+              f"Penalty_Acc: {round(penalty_confusMat.get_acc(), 6)}  Penalty_F1: {round(penalty_confusMat.getMaF(), 6)}  Penalty_MR: {round(penalty_confusMat.getMaR(), 6)}  Penalty_MP: {round(penalty_confusMat.getMaP(), 6)}\n"
+              f"Time: {round((end-start)/60, 2)}min ")
 
         # 保存模型
         save_path = f"../dataset/model_checkpoints/round-1-1/model_at_epoch-{int((step + 1)/EPOCH)}_.pt"
