@@ -216,7 +216,7 @@ for step in range(STEP):
               f"Time: {round((end-start)/60, 2)}min ")
 
         # 保存模型
-        save_path = f"../dataset/model_checkpoints/round-1-1/model_at_epoch-{int((step + 1)/EPOCH)}_.pt"
+        save_path = f"../dataset/checkpoints/model-at-epoch-{int((step + 1)/EPOCH)}_.pt"
         torch.save({
             'step': step,
             'model_state_dict': model.state_dict(),
