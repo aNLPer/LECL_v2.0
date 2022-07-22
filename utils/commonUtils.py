@@ -7,7 +7,7 @@ import pickle
 from transformers import BertTokenizer
 import torch
 import torch.nn.functional as F
-
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 TEMPER = 1
 
@@ -366,7 +366,7 @@ def penalty_constrain(outputs, radius = 10):
         """
     posi_size = outputs.shape[0]
     batch_size = outputs.shape[1]
-    y = torch.zeros(outputs.shape[1])
+    y = torch.zeros(outputs.shape[1]).to(device)
     # 正样本距离
     penalty_constrain_loss = 0
     for i in range(posi_size - 1):

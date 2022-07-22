@@ -39,7 +39,9 @@ class GRULJP(nn.Module):
                           bidirectional=self.bidirectional)
 
         self.chargeAwareAtten = CharacAwareAtten(2*self.hidden_size, mode)
+        self.chargeAwareAtten.to(device)
         self.articleAwareAtten = CharacAwareAtten(2*self.hidden_size, mode)
+        self.articleAwareAtten.to(device)
 
 
         self.chargeLinear = nn.Sequential(
@@ -187,7 +189,7 @@ class CharacAwareAtten(nn.Module):
         # encoder 输出的转换矩阵
         self.transM = torch.normal(0, 1, (self.hidden_size, self.hidden_size),
                                    dtype=torch.float32,
-                                   requires_grad=True)
+                                   requires_grad=True).to(device)
         if mode == "sum":
             self.linear = nn.Sequential(
                 nn.Linear(self.hidden_size, 2 * self.hidden_size),

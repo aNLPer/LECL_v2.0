@@ -118,23 +118,23 @@ for step in range(STEP):
     # 指控分类误差
     charge_preds_outputs = torch.cat(charge_preds_outputs, dim=0)  # [posi_size, batch_size/posi_size, label_size] -> [batch_size, label_size]
     accu_labels = [torch.tensor(l) for l in accu_labels]
-    accu_labels = torch.cat(accu_labels, dim=0)
+    accu_labels = torch.cat(accu_labels, dim=0).to(device)
     charge_preds_loss = criterion(charge_preds_outputs, accu_labels)
 
     # 法律条款预测误差
     article_preds_outputs = torch.cat(article_preds_outputs, dim=0)
     article_labels = [torch.tensor(l) for l in article_labels]
-    article_labels = torch.cat(article_labels, dim=0)
+    article_labels = torch.cat(article_labels, dim=0).to(device)
     article_preds_loss = criterion(article_preds_outputs, article_labels)
 
     # 刑期预测结果约束（相似案件的刑期应该相近）
-    penalty_contrains = torch.stack(penalty_preds_outputs, dim=0)
+    penalty_contrains = torch.stack(penalty_preds_outputs, dim=0).to(device)
     penalty_contrains_loss = penalty_constrain(penalty_contrains, PENALTY_RADIUS)
 
     # 刑期预测误差
     penalty_preds_outputs = torch.cat(penalty_preds_outputs, dim=0)
     penalty_labels = [torch.tensor(l) for l in penalty_labels]
-    penalty_labels = torch.cat(penalty_labels, dim=0)
+    penalty_labels = torch.cat(penalty_labels, dim=0).to(device)
     penalty_preds_loss = criterion(penalty_preds_outputs, penalty_labels)
 
     loss = posi_pairs_dist+neg_pairs_dist+charge_preds_loss+article_preds_loss+penalty_preds_loss+penalty_contrains_loss
