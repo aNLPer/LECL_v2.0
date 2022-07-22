@@ -100,9 +100,9 @@ for step in range(STEP):
     penalty_preds_outputs = []
     for i in range(POSITIVE_SIZE):
         # [batch_size/2, hidden_size]、[batch_size/2, label_size]
-        seq_lens = [t.shape[0] for t in seqs]
-        # for tensor in seqs[i]:
-        #     seq_lens.append(tensor.shape[0])
+        seq_lens = []
+        for tensor in seqs[i]:
+            seq_lens.append(tensor.shape[0])
         padded_input_ids = pad_sequence(seqs[i], batch_first=True).to(device)
 
         charge_vecs, charge_preds, article_preds, penalty_preds = model(padded_input_ids, seq_lens)
