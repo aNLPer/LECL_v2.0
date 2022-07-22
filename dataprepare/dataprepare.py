@@ -270,9 +270,9 @@ def make_accu2case_dataset(filename, lang, input_idx, accu_idx):
         for line in f:
             item = json.loads(line)
             if item[accu_idx] not in accu2case:
-                accu2case[item[accu_idx]] = [[lang.word2index[w] for w in item[input_idx]]]
+                accu2case[item[accu_idx]] = [[[lang.word2index[w] for w in item[input_idx]],item[accu_idx], item[accu_idx+1], item[accu_idx+2]]]
             else:
-                accu2case[item[accu_idx]].append([lang.word2index[w] for w in item[input_idx]])
+                accu2case[item[accu_idx]].append([[lang.word2index[w] for w in item[input_idx]],item[accu_idx], item[accu_idx+1], item[accu_idx+2]])
     return accu2case
 
 def word2Index(file_path, lang, acc2id):

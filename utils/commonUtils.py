@@ -261,9 +261,15 @@ def pretrain_data_loader(accu2case,
     其中 batch_size/sim_accu_num 为整数
     :return:
     """
+    accu_labels = []
+    article_labels = []
+    penalty_labels = []
     seq = []
     for _ in range(positive_size):
         seq.append([])
+        accu_labels.append([])
+        article_labels.append([])
+        penalty_labels.append([])
     # 获取数据集中的所有指控
     accus = np.array(list(accu2case.keys()))
     # 选取指控
@@ -301,10 +307,12 @@ def pretrain_data_loader(accu2case,
     for accu in selected_accus:
         selected_cases = np.random.choice(accu2case[accu], size=positive_size, replace=False)
         for i in range(positive_size):
-            seq[i].append(selected_cases[i])
-    label_ids = [label2index[label] for label in selected_accus]
+            seq[i].append(selected_cases[i][0])
+            accu_labels[i].append(selected_cases[i][1])
+            article_labels[i].append(selected_cases[i][2])
+            penalty_labels[i].append(selected_cases[i][3])
 
-    return seq, label_ids
+    return seq, accu_labels, article_labels, penalty_labels
 
 
 
