@@ -4,6 +4,7 @@ from torch.nn.utils.rnn import pad_sequence, pack_padded_sequence, pad_packed_se
 from transformers import BertModel
 # distinguish confusing charge for legal judgement prediction
 
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 class GRULJP(nn.Module):
     def __init__(self,
@@ -81,7 +82,7 @@ class GRULJP(nn.Module):
         outputs_unpacked, unpacked_lens = pad_packed_sequence(outputs_packed, batch_first=True)
         # [batch_size, 2*hidden_size]
         outputs_sum = outputs_unpacked.sum(dim=1)
-        unpacked_lens = unpacked_lens.unsqueeze(dim=1)
+        unpacked_lens = unpacked_lens.unsqueeze(dim=1).to(device)
         outputs_mean = outputs_sum/unpacked_lens
 
         # [batch_size, 2*hidden_size]
