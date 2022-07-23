@@ -374,7 +374,7 @@ def penalty_constrain(outputs, radius = 10):
         for j in range(i + 1, posi_size):
             dist = F.pairwise_distance(outputs[i], outputs[j])
             penalty_constrain_loss += torch.sum(torch.where(dist>radius, dist, y))
-    return penalty_constrain_loss
+    return penalty_constrain_loss/batch_size
 
 def accumulated_accuracy(preds, labels):
     pred_flat = np.argmax(preds, axis=1).flatten()

@@ -93,8 +93,6 @@ for step in range(STEP):
                                           sim_accu_num=SIM_ACCU_NUM,
                                           category2accu=category2accu,
                                           accu2category=accu2category)
-
-
     # 设置模型状态
     model.train()
 
@@ -136,8 +134,8 @@ for step in range(STEP):
     article_preds_loss = criterion(article_preds_outputs, article_labels)
 
     # 刑期预测结果约束（相似案件的刑期应该相近）
-    # penalty_contrains = torch.stack(penalty_preds_outputs, dim=0).to(device)
-    # penalty_contrains_loss = penalty_constrain(penalty_contrains, PENALTY_RADIUS)
+    penalty_contrains = torch.stack(penalty_preds_outputs, dim=0).to(device)
+    penalty_contrains_loss = penalty_constrain(penalty_contrains, PENALTY_RADIUS)
 
     # 刑期预测误差
     penalty_preds_outputs = torch.cat(penalty_preds_outputs, dim=0)
@@ -145,7 +143,7 @@ for step in range(STEP):
     penalty_labels = torch.cat(penalty_labels, dim=0).to(device)
     penalty_preds_loss = criterion(penalty_preds_outputs, penalty_labels)
 
-    loss = posi_pairs_dist+neg_pairs_dist+charge_preds_loss#+article_preds_loss+penalty_preds_loss #+LAMDA*penalty_contrains_loss
+    loss = posi_pairs_dist+neg_pairs_dist+charge_preds_loss + article_preds_loss+ penalty_preds_loss + LAMDA*penalty_contrains_loss
     train_loss += loss.item()
 
     # 反向传播计算梯度
