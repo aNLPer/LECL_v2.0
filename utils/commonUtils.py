@@ -401,5 +401,11 @@ def prepare_valid_data(resourcefile, lang):
             penaty_labels.append(example[4])
     return seq, charge_labels,  article_labels, penaty_labels
 
-
-
+def check_data(lang, seq, c_label, a_label, p_label):
+    seq_w = []
+    for s in seq:
+        s = s.tolist()
+        seq_w.append("".join([lang.index2word[i] for i in s]))
+    c_label_w = [lang.index2accu[i] for i in c_label]
+    a_label_w = [lang.index2art[i] for i in a_label]
+    return seq_w, c_label_w, a_label_w

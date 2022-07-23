@@ -10,7 +10,7 @@ from timeit import default_timer as timer
 from torch.nn.utils.rnn import pad_sequence
 from transformers import get_linear_schedule_with_warmup, AdamW
 from dataprepare.dataprepare import make_accu2case_dataset, load_classifiedAccus
-from utils.commonUtils import contras_data_loader, train_distloss_fun, penalty_constrain, ConfusionMatrix, prepare_valid_data, data_loader, Lang
+from utils.commonUtils import contras_data_loader, train_distloss_fun, penalty_constrain, ConfusionMatrix, prepare_valid_data, data_loader, check_data, Lang
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -93,6 +93,7 @@ for step in range(STEP):
                                           sim_accu_num=SIM_ACCU_NUM,
                                           category2accu=category2accu,
                                           accu2category=accu2category)
+
 
     # 设置模型状态
     model.train()
