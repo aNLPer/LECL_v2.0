@@ -61,10 +61,10 @@ model.to(device)
 criterion = nn.CrossEntropyLoss()
 
 # 定义优化器 AdamW由Transfomer提供,目前看来表现很好
-# optimizer = AdamW(model.parameters(),
-#                   lr=LR,
-#                   eps=1e-8)
-optimizer = optim.Adam(model.parameters(), lr=LR)
+optimizer = AdamW(model.parameters(),
+                  lr=LR,
+                  eps=LR)
+# optimizer = optim.Adam(model.parameters(), lr=LR)
 
 # 学习率优化策略
 scheduler = get_linear_schedule_with_warmup(optimizer,
