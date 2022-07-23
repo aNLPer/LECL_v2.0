@@ -109,7 +109,7 @@ for step in range(STEP):
     posi_pairs_dist, neg_pairs_dist = train_distloss_fun(contra_outputs, radius=M)
     classify_loss = criterion(classify_outputs, label_ids)
 
-    loss = posi_pairs_dist+neg_pairs_dist+classify_loss
+    loss = posi_pairs_dist-neg_pairs_dist+classify_loss
     train_loss += loss.item()
 
     # 反向传播计算梯度

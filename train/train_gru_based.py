@@ -29,7 +29,8 @@ LR = float(config.get(section, "LR"))
 STEP = int(config.get(section, "STEP"))
 CHARGE_RADIUS = int(config.get(section, "CHARGE_RADIUS"))
 PENALTY_RADIUS = int(config.get(section, "PENALTY_RADIUS"))
-LAMDA = float(config.get(section, "LAMDA"))
+LAMDA = float(config.get(section, "LAMDA")) # 刑期约束系数
+ALPHA = float(config.get(section, "ALPHA")) #
 
 corpus_info_path = "../dataprepare/lang-CAIL-SMALL-word-level.pkl"
 data_path = "../dataset/CAIL-SMALL/train_processed.txt"
@@ -143,7 +144,9 @@ for step in range(STEP):
     penalty_labels = torch.cat(penalty_labels, dim=0).to(device)
     penalty_preds_loss = criterion(penalty_preds_outputs, penalty_labels)
 
-    loss = posi_pairs_dist+neg_pairs_dist+charge_preds_loss + article_preds_loss+ penalty_preds_loss + LAMDA*penalty_contrains_loss
+    loss = ALPHA * (posi_pairs_dist - neg_pairs_dist) + \
+           charge_preds_loss + article_preds_loss+ penalty_preds_loss + \
+           LAMDA * penalty_contrains_loss
     train_loss += loss.item()
 
     # 反向传播计算梯度
