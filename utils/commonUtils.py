@@ -387,7 +387,7 @@ def genConfusMat(confusMat, preds, labels):
     for i in range(len(labels_flat)):
         confusMat[labels_flat[i]][pred_flat[i]] += 1
 
-def prepare_valid_data(resourcefile, lang):
+def prepare_valid_data(resourcefile, lang, max_length):
     seq = []
     charge_labels = []
     article_labels = []
@@ -395,7 +395,12 @@ def prepare_valid_data(resourcefile, lang):
     with open(resourcefile, "r", encoding="utf-8") as f:
         for line in f:
             example = json.loads(line)
-            seq.append([lang.word2index[w] if w in lang.word2index.keys() else lang.word2index['UNK'] for w in example[1]])
+            case = [lang.word2index[w] if w in lang.word2index.keys() else lang.word2index['UNK'] for w in example[0]]
+            if len(case)<=max_length:
+                case_clip = case
+            else:
+                case_clip = case[0:int(0.3*max_length)] + case[-int(0.7*max_length):]
+            seq.append(case_clip)
             charge_labels.append(example[2])
             article_labels.append(example[3])
             penaty_labels.append(example[4])

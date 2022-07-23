@@ -2,4 +2,5 @@ import torch
 import json
 import torch.nn.functional as F
 
-print([1]+[2])
+a = [1,2,3,4,5]
+print(a[-3:])

@@ -22,7 +22,7 @@ EPOCH = int(config.get(section, "EPOCH"))
 BATCH_SIZE = int(config.get(section, "BATCH_SIZE"))
 HIDDEN_SIZE = int(config.get(section, "HIDDEN_SIZE"))
 POSITIVE_SIZE = int(config.get(section, "POSITIVE_SIZE"))
-IS_CLIP = int(config.get(section, "IS_CLIP"))
+MAX_LENGTH = int(config.get(section, "MAX_LENGTH"))
 SIM_ACCU_NUM = int(config.get(section, "SIM_ACCU_NUM"))
 PENALTY_LABEL_SIZE = int(config.get(section,"PENALTY_LABEL_SIZE"))
 LR = float(config.get(section, "LR"))
@@ -41,7 +41,7 @@ lang = pickle.load(f)
 f.close()
 
 print("load dataset classified by accusation")
-accu2case = make_accu2case_dataset(data_path, lang=lang, input_idx=0, accu_idx=2, isClip=IS_CLIP)
+accu2case = make_accu2case_dataset(data_path, lang=lang, input_idx=0, accu_idx=2, max_length=MAX_LENGTH)
 
 print("load accusation similarity sheet")
 category2accu, accu2category = load_classifiedAccus(accu_similarity)
@@ -171,7 +171,7 @@ for step in range(STEP):
         valid_loss = 0
         val_step = 0
         valid_seq, valid_charge_labels, valid_article_labels, valid_penalty_labels = \
-            prepare_valid_data("../dataset/CAIL-SMALL/test_processed.txt", lang)
+            prepare_valid_data("../dataset/CAIL-SMALL/test_processed.txt", lang, max_length=MAX_LENGTH)
 
         for val_seq, val_charge_label, val_article_label, val_penalty_label in data_loader(valid_seq, valid_charge_labels, valid_article_labels, valid_penalty_labels, batch_size=BATCH_SIZE):
             val_seq_lens = [len(s) for s in val_seq]
