@@ -6,7 +6,7 @@ from transformers import BertModel
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-class NavieBERt(nn.Module):
+class NavieBERT(nn.Module):
     pass
 
 class GRULJP(nn.Module):

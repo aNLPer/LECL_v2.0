@@ -66,7 +66,7 @@ for step in range(STEP):
     if step%EPOCH == 0:
         start = timer()
     start = timer()
-    seq, label_ids = pretrain_data_loader(accu2case=accu2case,
+    seq, label_ids = contras_data_loader(accu2case=accu2case,
                                           batch_size=BATCH_SIZE,
                                           label2index=lang.label2index,
                                           positive_size=POSI_SIZE,
