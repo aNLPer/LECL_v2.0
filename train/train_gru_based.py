@@ -31,6 +31,9 @@ CHARGE_RADIUS = int(config.get(section, "CHARGE_RADIUS"))
 PENALTY_RADIUS = int(config.get(section, "PENALTY_RADIUS"))
 LAMDA = float(config.get(section, "LAMDA")) # 刑期约束系数
 ALPHA = float(config.get(section, "ALPHA")) #
+GRU_LAYERS = int(config.get(section, 'GRU_LAYERS'))
+DROPOUT_RATE = float(config.get(section, "DROPOUT_RATE"))
+
 
 corpus_info_path = "../dataprepare/lang-CAIL-SMALL-word-level.pkl"
 data_path = "../dataset/CAIL-SMALL/train_processed.txt"
@@ -52,6 +55,8 @@ model = GRULJP(charge_label_size=len(lang.index2accu),
                article_label_size=len(lang.index2art),
                penalty_label_size=PENALTY_LABEL_SIZE,
                voc_size=lang.n_words,
+               dropout=DROPOUT_RATE,
+               num_layers=GRU_LAYERS,
                hidden_size=HIDDEN_SIZE,
                mode="sum")
 
