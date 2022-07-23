@@ -51,7 +51,8 @@ class GRULJP(nn.Module):
             nn.Linear(2*self.hidden_size, 4*self.hidden_size),
             nn.BatchNorm1d(4*self.hidden_size),
             nn.ReLU(),
-            nn.Linear(4*self.hidden_size, 2*self.hidden_size)
+            nn.Linear(4*self.hidden_size, 2*self.hidden_size),
+            nn.Dropout(p=0.4)
         )
 
         self.chargePreds = nn.Sequential(
@@ -197,14 +198,16 @@ class CharacAwareAtten(nn.Module):
                 nn.Linear(self.hidden_size, 2 * self.hidden_size),
                 nn.BatchNorm1d(2 * self.hidden_size),
                 nn.ReLU(),
-                nn.Linear(2 * self.hidden_size, self.hidden_size)
+                nn.Linear(2 * self.hidden_size, self.hidden_size),
+                nn.Dropout(p=0.4)
             )
         if mode == "concat":
             self.linear = nn.Sequential(
                 nn.Linear(2*self.hidden_size, 4 * self.hidden_size),
                 nn.BatchNorm1d(4 * self.hidden_size),
                 nn.ReLU(),
-                nn.Linear(4 * self.hidden_size, self.hidden_size)
+                nn.Linear(4 * self.hidden_size, self.hidden_size),
+                nn.Dropout(p=0.4)
             )
 
     def forward(self, encs, vecs):
