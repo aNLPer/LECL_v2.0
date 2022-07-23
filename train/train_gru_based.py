@@ -50,7 +50,8 @@ model = GRULJP(charge_label_size=len(lang.index2accu),
                article_label_size=len(lang.index2art),
                penalty_label_size=PENALTY_LABEL_SIZE,
                voc_size=lang.n_words,
-               hidden_size=HIDDEN_SIZE)
+               hidden_size=HIDDEN_SIZE,
+               mode="sum")
 
 # model =
 model.to(device)
@@ -219,15 +220,15 @@ for step in range(STEP):
               f"Penalty_Acc: {round(penalty_confusMat.get_acc(), 6)}  Penalty_F1: {round(penalty_confusMat.getMaF(), 6)}  Penalty_MR: {round(penalty_confusMat.getMaR(), 6)}  Penalty_MP: {round(penalty_confusMat.getMaP(), 6)}\n"
               f"Time: {round((end-start)/60, 2)}min ")
 
-        # 保存模型
-        save_path = f"../dataset/checkpoints/model-at-epoch-{int((step + 1)/EPOCH)}_.pt"
-        torch.save({
-            'step': step,
-            'model_state_dict': model.state_dict(),
-            'optimizer_state_dict': optimizer.state_dict(),
-            'loss': loss,
-            'scheduler': scheduler.state_dict()
-        }, save_path)
+        # # 保存模型
+        # save_path = f"../dataset/checkpoints/model-at-epoch-{int((step + 1)/EPOCH)}_.pt"
+        # torch.save({
+        #     'step': step,
+        #     'model_state_dict': model.state_dict(),
+        #     'optimizer_state_dict': optimizer.state_dict(),
+        #     'loss': loss,
+        #     'scheduler': scheduler.state_dict()
+        # }, save_path)
 
         train_loss = 0
 
