@@ -82,7 +82,7 @@ optimizer = optim.AdamW([{"params":model.em.parameters(), 'lr':0.00001},
                          {"params":model.enc.parameters(), 'weight_decay':0.08},
                          {"params":model.chargeAwareAtten.parameters(), 'weight_decay':0.08},
                          {'params':model.articleAwareAtten.parameters(), 'weight_decay':0.08},
-                         {"params":model.chargeLinear.parameters(),},
+                         {"params":model.chargeLinear.parameters()},
                          {'params':model.chargePreds.parameters()},
                          {'params':model.articlePreds.parameters()},
                          {'params':model.penaltyPreds.parameters()}
@@ -98,8 +98,7 @@ optimizer = optim.AdamW([{"params":model.em.parameters(), 'lr':0.00001},
 scheduler = get_cosine_with_hard_restarts_schedule_with_warmup(optimizer,
                                                                num_warmup_steps=200,
                                                                num_training_steps=STEP,
-                                                               num_cycles=5
-                                                               )
+                                                               num_cycles=5)
 
 
 print("gru based model train start......\n")
