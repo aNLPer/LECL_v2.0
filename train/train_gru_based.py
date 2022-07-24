@@ -107,7 +107,6 @@ for step in range(STEP):
                                           sim_accu_num=SIM_ACCU_NUM,
                                           category2accu=category2accu,
                                           accu2category=accu2category)
-    print("采样完成.....")
     # 设置模型状态
     model.train()
 
