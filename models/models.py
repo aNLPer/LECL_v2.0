@@ -59,7 +59,7 @@ class GRULJP(nn.Module):
             nn.BatchNorm1d(4*self.hidden_size),
             nn.GELU(),
             nn.Linear(4*self.hidden_size, 2*self.hidden_size),
-            nn.Dropout(p=0.5)
+            # nn.Dropout(p=0.5)
         )
 
         self.chargePreds = nn.Sequential(
@@ -67,7 +67,7 @@ class GRULJP(nn.Module):
             nn.BatchNorm1d(4*self.hidden_size),
             nn.GELU(),
             nn.Linear(4*self.hidden_size, self.charge_label_size),
-            nn.Dropout(p=0.5)
+            # nn.Dropout(p=0.5)
         )
 
         self.articlePreds = nn.Sequential(
@@ -75,7 +75,7 @@ class GRULJP(nn.Module):
             nn.BatchNorm1d(4*self.hidden_size),
             nn.GELU(),
             nn.Linear(4*self.hidden_size, self.article_label_size),
-            nn.Dropout(p=0.5)
+            # nn.Dropout(p=0.5)
         )
 
         self.penaltyPreds = nn.Sequential(
@@ -83,7 +83,7 @@ class GRULJP(nn.Module):
             nn.BatchNorm1d(4*self.hidden_size),
             nn.GELU(),
             nn.Linear(4*self.hidden_size, self.penalty_label_size),
-            nn.Dropout(p=0.5)
+            # nn.Dropout(p=0.5)
         )
 
     def forward(self, input_ids, seq_lens):

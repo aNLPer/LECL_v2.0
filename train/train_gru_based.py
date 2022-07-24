@@ -9,7 +9,7 @@ import torch.optim as optim
 from models.models import GRULJP
 from timeit import default_timer as timer
 from torch.nn.utils.rnn import pad_sequence
-from transformers import get_linear_schedule_with_warmup, AdamW
+from transformers import get_linear_schedule_with_warmup, get_cosine_with_hard_restarts_schedule_with_warmup
 from dataprepare.dataprepare import make_accu2case_dataset, load_classifiedAccus
 from utils.commonUtils import contras_data_loader, train_distloss_fun, penalty_constrain, ConfusionMatrix, prepare_valid_data, data_loader, check_data, Lang
 
@@ -78,7 +78,7 @@ criterion = nn.CrossEntropyLoss()
 # 定义优化器 AdamW由Transfomer提供,目前看来表现很好
 # optimizer = AdamW(model.parameters(), lr=LR, weight_decay=L2)
 # optimizer = optim.AdamW(model.parameters(), lr=LR, weight_decay=0.05)
-optimizer = optim.AdamW([{"params":model.em.parameters(), 'lr':0.0001},
+optimizer = optim.AdamW([{"params":model.em.parameters(), 'lr':0.00001},
                          {"params":model.enc.parameters(), 'weight_decay':0.08},
                          {"params":model.chargeAwareAtten.parameters(), 'weight_decay':0.08},
                          {'params':model.articleAwareAtten.parameters(), 'weight_decay':0.08},
@@ -91,9 +91,15 @@ optimizer = optim.AdamW([{"params":model.em.parameters(), 'lr':0.0001},
 # optimizer = optim.SGD(model.parameters(), lr=LR)
 
 # 学习率优化策略
-scheduler = get_linear_schedule_with_warmup(optimizer,
-                                            num_warmup_steps = 500, # Default value in run_glue.py
-                                            num_training_steps = STEP)
+# scheduler = get_linear_schedule_with_warmup(optimizer,
+#                                             num_warmup_steps = 500, # Default value in run_glue.py
+#                                             num_training_steps = STEP)
+
+scheduler = get_cosine_with_hard_restarts_schedule_with_warmup(optimizer,
+                                                               num_warmup_steps=200,
+                                                               num_training_steps=STEP,
+                                                               num_cycles=5
+                                                               )
 
 
 print("gru based model train start......\n")
@@ -111,12 +117,13 @@ for step in range(STEP):
         start = timer()
     start = timer()
     seqs, accu_labels, article_labels, penalty_labels = contras_data_loader(accu2case=accu2case,
-                                          batch_size=BATCH_SIZE,
-                                          lang=lang,
-                                          positive_size=POSITIVE_SIZE,
-                                          sim_accu_num=SIM_ACCU_NUM,
-                                          category2accu=category2accu,
-                                          accu2category=accu2category)
+                                                                            isremove = False,
+                                                                            batch_size=BATCH_SIZE,
+                                                                            lang=lang,
+                                                                            positive_size=POSITIVE_SIZE,
+                                                                            sim_accu_num=SIM_ACCU_NUM,
+                                                                            category2accu=category2accu,
+                                                                            accu2category=accu2category)
     # 设置模型状态
     model.train()
 

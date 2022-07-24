@@ -242,6 +242,7 @@ def get_acc_desc(file_path):
 
 # 获取batch
 def contras_data_loader(accu2case,
+                        isremove,
                          batch_size,
                          lang,
                          positive_size=2,
