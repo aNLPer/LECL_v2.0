@@ -77,7 +77,16 @@ criterion = nn.CrossEntropyLoss()
 
 # 定义优化器 AdamW由Transfomer提供,目前看来表现很好
 # optimizer = AdamW(model.parameters(), lr=LR, weight_decay=L2)
-optimizer = optim.AdamW(model.parameters(), lr=LR, weight_decay=0.05)
+# optimizer = optim.AdamW(model.parameters(), lr=LR, weight_decay=0.05)
+optimizer = optim.AdamW([{"params":model.em.parameters(),'lr':0.0001},
+                         {"params":model.enc.parameters()},
+                         {"params":model.chargeAwareAtten.parameters()},
+                         {'params':model.articleAwareAtten.p},
+                         {"params":model.chargeLinear.parameters()},
+                         {'params':model.chargePreds.parameters()},
+                         {'params':model.articlePreds.parameters()},
+                         {'params':model.penaltyPreds.parameters()}
+                         ], lr=LR, weight_decay=0.05)
 # optimizer = optim.Adam(model.parameters(), lr=LR, weight_decay=L2)
 # optimizer = optim.SGD(model.parameters(), lr=LR)
 
