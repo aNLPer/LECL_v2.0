@@ -387,23 +387,28 @@ def genConfusMat(confusMat, preds, labels):
     for i in range(len(labels_flat)):
         confusMat[labels_flat[i]][pred_flat[i]] += 1
 
-def prepare_valid_data(resourcefile, lang, max_length):
+def prepare_valid_data(resourcefile, lang, input_idx, max_length, pretrained_vec=None):
     seq = []
     charge_labels = []
     article_labels = []
     penaty_labels = []
     with open(resourcefile, "r", encoding="utf-8") as f:
         for line in f:
-            example = json.loads(line)
-            case = [lang.word2index[w] if w in lang.word2index.keys() else lang.word2index['UNK'] for w in example[0]]
+            item = json.loads(line)
+
+            if pretrained_vec is not None:
+                case = [pretrained_vec.get_index(w) if w in pretrained_vec.key_to_index.keys() else 0 for w in item[input_idx]]
+            else:
+                case = [lang.word2index[w] for w in item[input_idx]]
+
             if len(case)<=max_length:
                 case_clip = case
             else:
                 case_clip = case[0:int(0.3*max_length)] + case[-int(0.7*max_length):]
             seq.append(case_clip)
-            charge_labels.append(example[2])
-            article_labels.append(example[3])
-            penaty_labels.append(example[4])
+            charge_labels.append(item[2])
+            article_labels.append(item[3])
+            penaty_labels.append(item[4])
     return seq, charge_labels,  article_labels, penaty_labels
 
 def check_data(lang, seq, c_label, a_label, p_label):
