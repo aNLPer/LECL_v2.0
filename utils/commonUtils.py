@@ -309,8 +309,7 @@ def contras_data_loader(accu2case,
         selected_cases_ids = np.random.choice(range(len(accu2case[accu])), size=positive_size, replace=False)
         selected_cases = [accu2case[accu][id] for id in selected_cases_ids]
         for i in range(positive_size):
-            t = torch.tensor(selected_cases[i][0], dtype=torch.long)
-            seq[i].append(t)
+            seq[i].append(torch.tensor(selected_cases[i][0], dtype=torch.long))
             accu_labels[i].append(selected_cases[i][1])
             article_labels[i].append(selected_cases[i][2])
             penalty_labels[i].append(selected_cases[i][3])
