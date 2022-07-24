@@ -9,7 +9,7 @@ import torch.optim as optim
 from models.models import GRULJP
 from timeit import default_timer as timer
 from torch.nn.utils.rnn import pad_sequence
-from transformers import get_linear_schedule_with_warmup, get_cosine_with_hard_restarts_schedule_with_warmup
+from transformers import get_linear_schedule_with_warmup, get_cosine_with_hard_restarts_schedule_with_warmup, get_cosine_schedule_with_warmup
 from dataprepare.dataprepare import make_accu2case_dataset, load_classifiedAccus
 from utils.commonUtils import contras_data_loader, train_distloss_fun, penalty_constrain, ConfusionMatrix, prepare_valid_data, data_loader, check_data, Lang
 
@@ -95,12 +95,14 @@ optimizer = optim.AdamW([{"params":model.em.parameters(), 'lr':0.00001},
 #                                             num_warmup_steps = 500, # Default value in run_glue.py
 #                                             num_training_steps = STEP)
 
-scheduler = get_cosine_with_hard_restarts_schedule_with_warmup(optimizer,
-                                                               num_warmup_steps=200,
-                                                               num_training_steps=STEP,
-                                                               num_cycles=5)
+# scheduler = get_cosine_with_hard_restarts_schedule_with_warmup(optimizer,
+#                                                                num_warmup_steps=200,
+#                                                                num_training_steps=STEP,
+#                                                                num_cycles=5)
 
-
+scheduler = get_cosine_schedule_with_warmup(optimizer,
+                                            num_warmup_steps=200,
+                                            num_training_steps=STEP)
 print("gru based model train start......\n")
 
 train_loss = 0
