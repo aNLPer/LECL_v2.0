@@ -40,7 +40,6 @@ class GRULJP(nn.Module):
         # self.em = nn.Embedding(self.voc_size, self.hidden_size, padding_idx=0)
         vectors = torch.tensor(self.pretrained_model.vectors, dtype=torch.float32).to(device)
         self.em = nn.Embedding.from_pretrained(vectors, freeze=False)
-        print(self.em(torch.LongTensor([578])))
 
         self.enc = nn.GRU(input_size=self.hidden_size,
                           hidden_size=self.hidden_size,
