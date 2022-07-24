@@ -79,14 +79,14 @@ criterion = nn.CrossEntropyLoss()
 # optimizer = AdamW(model.parameters(), lr=LR, weight_decay=L2)
 # optimizer = optim.AdamW(model.parameters(), lr=LR, weight_decay=0.05)
 optimizer = optim.AdamW([{"params":model.em.parameters(), 'lr':0.00001},
-                         {"params":model.enc.parameters(), 'weight_decay':0.08},
-                         {"params":model.chargeAwareAtten.parameters(), 'weight_decay':0.08},
-                         {'params':model.articleAwareAtten.parameters(), 'weight_decay':0.08},
+                         {"params":model.enc.parameters(), 'weight_decay':0.1},
+                         {"params":model.chargeAwareAtten.parameters(), 'weight_decay':0.1},
+                         {'params':model.articleAwareAtten.parameters(), 'weight_decay':0.1},
                          {"params":model.chargeLinear.parameters()},
                          {'params':model.chargePreds.parameters()},
                          {'params':model.articlePreds.parameters()},
                          {'params':model.penaltyPreds.parameters()}
-                         ], lr=LR, weight_decay=0.01)
+                         ], lr=LR, weight_decay=0.05)
 # optimizer = optim.Adam(model.parameters(), lr=LR, weight_decay=L2)
 # optimizer = optim.SGD(model.parameters(), lr=LR, momentum=0.9)
 
