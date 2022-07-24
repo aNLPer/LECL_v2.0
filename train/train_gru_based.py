@@ -1,6 +1,7 @@
 import torch
 import pickle
 import json
+import gensim
 import configparser
 import torch.nn as nn
 import numpy as np
@@ -46,11 +47,16 @@ f = open(corpus_info_path, "rb")
 lang = pickle.load(f)
 f.close()
 
+print("load pretrained word2vec")
+pretrained_model = gensim.models.KeyedVectors.load_word2vec_format('../dataset/token_vec_300.bin', binary=False)
+
 print("load dataset classified by accusation")
-accu2case = make_accu2case_dataset(data_path, lang=lang, input_idx=0, accu_idx=2, max_length=MAX_LENGTH)
+accu2case = make_accu2case_dataset(data_path, lang=lang, input_idx=0, accu_idx=2, max_length=MAX_LENGTH, pretrained_vec=pretrained_model)
 
 print("load accusation similarity sheet")
 category2accu, accu2category = load_classifiedAccus(accu_similarity)
+
+
 
 
 model = GRULJP(charge_label_size=len(lang.index2accu),
@@ -60,6 +66,7 @@ model = GRULJP(charge_label_size=len(lang.index2accu),
                dropout=DROPOUT_RATE,
                num_layers=GRU_LAYERS,
                hidden_size=HIDDEN_SIZE,
+               pretrained_model = pretrained_model,
                mode="concat")
 
 # model =

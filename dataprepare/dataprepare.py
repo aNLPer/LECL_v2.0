@@ -262,12 +262,15 @@ def getLang(filepath, data_index, langfilename):
 
 
 
-def make_accu2case_dataset(filename, lang, input_idx, accu_idx, max_length):
+def make_accu2case_dataset(filename, lang, input_idx, accu_idx, max_length, pretrained_vec=None):
     accu2case = {}
     with open(filename, "r", encoding="utf-8") as f:
         for line in f:
             item = json.loads(line)
-            case = [lang.word2index[w] for w in item[input_idx]]
+            if pretrained_vec is not None:
+                case = [pretrained_vec.get_index(w) if w in pretrained_vec.key_to_index.keys() else '，' for w in item[input_idx]]
+            else:
+                case = [lang.word2index[w] for w in item[input_idx]]
 
             if len(case)<=max_length:
                 case_clip = case

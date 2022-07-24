@@ -1,8 +1,11 @@
 import torch
+import gensim
 import torch.nn as nn
 from torch.nn.utils.rnn import pad_sequence, pack_padded_sequence, pad_packed_sequence
 from transformers import BertModel
 # distinguish confusing charge for legal judgement prediction
+
+
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -15,6 +18,7 @@ class GRULJP(nn.Module):
                  article_label_size,
                  penalty_label_size,
                  voc_size, # 词汇表
+                 pretrained_model,
                  hidden_size=128, # 隐藏状态size，
                  num_layers = 2,
                  bidirectional=True,
@@ -31,8 +35,12 @@ class GRULJP(nn.Module):
         self.article_label_size = article_label_size
         self.penalty_label_size = penalty_label_size
         self.mode = mode
+        self.pretrained_model = pretrained_model
 
-        self.em = nn.Embedding(self.voc_size, self.hidden_size, padding_idx=0)
+        # self.em = nn.Embedding(self.voc_size, self.hidden_size, padding_idx=0)
+        vectors = torch.tensor(self.pretrained_model.vectors, dtype=torch.float32).to(device)
+        self.em = nn.Embedding.from_pretrained(vectors, freeze=False)
+        print(self.em(torch.LongTensor([578])))
 
         self.enc = nn.GRU(input_size=self.hidden_size,
                           hidden_size=self.hidden_size,
