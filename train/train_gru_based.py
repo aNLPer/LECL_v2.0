@@ -88,7 +88,7 @@ optimizer = optim.AdamW([{"params":model.em.parameters(), 'lr':0.00001},
                          {'params':model.penaltyPreds.parameters()}
                          ], lr=LR, weight_decay=0.01)
 # optimizer = optim.Adam(model.parameters(), lr=LR, weight_decay=L2)
-# optimizer = optim.SGD(model.parameters(), lr=LR)
+# optimizer = optim.SGD(model.parameters(), lr=LR, momentum=0.9)
 
 # 学习率优化策略
 # scheduler = get_linear_schedule_with_warmup(optimizer,
