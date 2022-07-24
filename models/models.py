@@ -50,30 +50,33 @@ class GRULJP(nn.Module):
         self.chargeLinear = nn.Sequential(
             nn.Linear(2*self.hidden_size, 4*self.hidden_size),
             nn.BatchNorm1d(4*self.hidden_size),
-            nn.ReLU(),
+            nn.GELU(),
             nn.Linear(4*self.hidden_size, 2*self.hidden_size),
-            nn.Dropout(p=0.4)
+            nn.Dropout(p=0.5)
         )
 
         self.chargePreds = nn.Sequential(
             nn.Linear(2*self.hidden_size, 4*self.hidden_size),
             nn.BatchNorm1d(4*self.hidden_size),
-            nn.ReLU(),
-            nn.Linear(4*self.hidden_size, self.charge_label_size)
+            nn.GELU(),
+            nn.Linear(4*self.hidden_size, self.charge_label_size),
+            nn.Dropout(p=0.5)
         )
 
         self.articlePreds = nn.Sequential(
             nn.Linear(2*self.hidden_size, 4*self.hidden_size),
             nn.BatchNorm1d(4*self.hidden_size),
             nn.ReLU(),
-            nn.Linear(4*self.hidden_size, self.article_label_size)
+            nn.Linear(4*self.hidden_size, self.article_label_size),
+            nn.Dropout(p=0.5)
         )
 
         self.penaltyPreds = nn.Sequential(
             nn.Linear(2*self.hidden_size, 4*self.hidden_size),
             nn.BatchNorm1d(4*self.hidden_size),
             nn.ReLU(),
-            nn.Linear(4*self.hidden_size, self.penalty_label_size)
+            nn.Linear(4*self.hidden_size, self.penalty_label_size),
+            nn.Dropout(p=0.5)
         )
 
     def forward(self, input_ids, seq_lens):

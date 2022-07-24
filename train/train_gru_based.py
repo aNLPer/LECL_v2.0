@@ -18,6 +18,7 @@ print("load config file")
 section = "gru-train"
 config = configparser.ConfigParser()
 config.read('../config.cfg')
+
 EPOCH = int(config.get(section, "EPOCH"))
 BATCH_SIZE = int(config.get(section, "BATCH_SIZE"))
 HIDDEN_SIZE = int(config.get(section, "HIDDEN_SIZE"))
@@ -33,6 +34,7 @@ LAMDA = float(config.get(section, "LAMDA")) # 刑期约束系数
 ALPHA = float(config.get(section, "ALPHA")) #
 GRU_LAYERS = int(config.get(section, 'GRU_LAYERS'))
 DROPOUT_RATE = float(config.get(section, "DROPOUT_RATE"))
+L2 = float(config.get(section, "L2"))
 
 
 corpus_info_path = "../dataprepare/lang-CAIL-SMALL-word-level.pkl"
@@ -58,7 +60,7 @@ model = GRULJP(charge_label_size=len(lang.index2accu),
                dropout=DROPOUT_RATE,
                num_layers=GRU_LAYERS,
                hidden_size=HIDDEN_SIZE,
-               mode="sum")
+               mode="concat")
 
 # model =
 model.to(device)
@@ -67,8 +69,8 @@ model.to(device)
 criterion = nn.CrossEntropyLoss()
 
 # 定义优化器 AdamW由Transfomer提供,目前看来表现很好
-optimizer = AdamW(model.parameters(), lr=LR)
-# optimizer = optim.Adam(model.parameters(), lr=LR)
+optimizer = AdamW(model.parameters(), lr=LR, weight_decay=L2)
+optimizer = optim.Adam(model.parameters(), lr=LR, weight_decay=L2)
 # optimizer = optim.SGD(model.parameters(), lr=LR)
 
 # 学习率优化策略
