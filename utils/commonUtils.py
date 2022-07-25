@@ -399,7 +399,7 @@ def prepare_valid_data(resourcefile, lang, input_idx, max_length, pretrained_vec
 
             if pretrained_vec is not None:
                 case = [pretrained_vec.get_index(w) if w in pretrained_vec.key_to_index.keys()
-                        else pretrained_vec.get_index(" ") for w in item[input_idx]]
+                        else pretrained_vec.get_index("") for w in item[input_idx]]
             else:
                 case = [lang.word2index[w] for w in item[input_idx]]
 
