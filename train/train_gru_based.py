@@ -48,7 +48,7 @@ lang = pickle.load(f)
 f.close()
 
 print("load pretrained word2vec")
-pretrained_model = gensim.models.KeyedVectors.load_word2vec_format('../dataset/token_vec_300.bin', binary=False)
+pretrained_model = gensim.models.KeyedVectors.load_word2vec_format('../dataset/pretrain/law_token_vec_300.bin', binary=False)
 
 print("load dataset classified by accusation")
 accu2case = make_accu2case_dataset(data_path, lang=lang, input_idx=0, accu_idx=2, max_length=MAX_LENGTH, pretrained_vec=pretrained_model)

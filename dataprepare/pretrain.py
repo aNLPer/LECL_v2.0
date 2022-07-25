@@ -23,10 +23,6 @@ def data_pre():
                     pretrainfile.write(s)
     pretrainfile.close()
 
-
-
-
-
 class TrainVector:
     def __init__(self):
         cur = '/'.join(os.path.abspath(__file__).split('/')[:-1])
@@ -51,12 +47,20 @@ class TrainVector:
         self.postag_size = 30
         self.word_size = 300
 
+    def readPretrainFile(self, path):
+        sentences = []
+        with open(path, "r", encoding="utf-8") as f:
+            for line in f:
+                sentences.append(line)
+        return sentences
 
     '''基于gensimx训练字符向量,拼音向量,词性向量'''
     def train_vector(self, train_path, embedding_path, embedding_size):
-        sentences = word2vec.Text8Corpus(train_path)  # 加载分词语料
-        model = word2vec.Word2Vec(sentences,vector_size=self.token_size, window=5, min_count=5)  # 训练skip-gram模型,默认window=5
+        # sentences = word2vec.Text8Corpus(train_path)  # 加载分词语料
+        sentences = self.readPretrainFile(train_path)
+        model = word2vec.Word2Vec(sentences,vector_size=embedding_size, window=5, min_count=5,workers=4)  # 训练skip-gram模型,默认window=5
         model.wv.save_word2vec_format(embedding_path, binary=False)
+
 
     '''基于特征共现+pca降维的依存向训练'''
     def train_dep_vector(self, train_path, embedding_path, embedding_size):
