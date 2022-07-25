@@ -67,7 +67,7 @@ model = GRULJP(charge_label_size=len(lang.index2accu),
                num_layers=GRU_LAYERS,
                hidden_size=HIDDEN_SIZE,
                pretrained_model = pretrained_model,
-               mode="concat")
+               mode="sum")
 
 # model =
 model.to(device)
@@ -103,14 +103,14 @@ optimizer = optim.AdamW([{"params":model.em.parameters(), 'lr':0.00001},
 #                                             num_warmup_steps = 500, # Default value in run_glue.py
 #                                             num_training_steps = STEP)
 
-# scheduler = get_cosine_with_hard_restarts_schedule_with_warmup(optimizer,
-#                                                                num_warmup_steps=200,
-#                                                                num_training_steps=STEP,
-#                                                                num_cycles=5)
+scheduler = get_cosine_with_hard_restarts_schedule_with_warmup(optimizer,
+                                                               num_warmup_steps=200,
+                                                               num_training_steps=STEP,
+                                                               num_cycles=4)
 
-scheduler = get_cosine_schedule_with_warmup(optimizer,
-                                            num_warmup_steps=200,
-                                            num_training_steps=STEP)
+# scheduler = get_cosine_schedule_with_warmup(optimizer,
+#                                             num_warmup_steps=200,
+#                                             num_training_steps=STEP)
 print("gru based model train start......\n")
 
 train_loss = 0
@@ -213,7 +213,7 @@ for step in range(STEP):
         valid_seq, valid_charge_labels, valid_article_labels, valid_penalty_labels = \
             prepare_valid_data("../dataset/CAIL-SMALL/test_processed.txt", lang,input_idx=0, max_length=MAX_LENGTH, pretrained_vec=pretrained_model)
 
-        for val_seq, val_charge_label, val_article_label, val_penalty_label in data_loader(valid_seq, valid_charge_labels, valid_article_labels, valid_penalty_labels, batch_size=BATCH_SIZE):
+        for val_seq, val_charge_label, val_article_label, val_penalty_label in data_loader(valid_seq, valid_charge_labels, valid_article_labels, valid_penalty_labels, batch_size=4*BATCH_SIZE):
             val_seq_lens = [len(s) for s in val_seq]
             val_input_ids = [torch.tensor(s) for s in val_seq]
             val_input_ids = pad_sequence(val_input_ids, batch_first=True).to(device)
