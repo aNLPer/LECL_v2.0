@@ -48,7 +48,7 @@ lang = pickle.load(f)
 f.close()
 
 print("load pretrained word2vec")
-pretrained_model = gensim.models.KeyedVectors.load_word2vec_format('../dataset/pretrain/law_token_vec_300.bin', binary=False)
+pretrained_model = gensim.models.KeyedVectors.load_word2vec_format(f'../dataset/pretrain/law_token_vec_{HIDDEN_SIZE}.bin', binary=False)
 
 print("load dataset classified by accusation")
 accu2case = make_accu2case_dataset(data_path, lang=lang, input_idx=0, accu_idx=2, max_length=MAX_LENGTH, pretrained_vec=pretrained_model)
@@ -79,14 +79,14 @@ criterion = nn.CrossEntropyLoss()
 # optimizer = AdamW(model.parameters(), lr=LR, weight_decay=L2)
 # optimizer = optim.AdamW(model.parameters(), lr=LR, weight_decay=0.05)
 optimizer = optim.AdamW([{"params":model.em.parameters(), 'lr':0.00001},
-                         {"params":model.enc.parameters(), 'weight_decay':0.1},
-                         {"params":model.chargeAwareAtten.parameters(), 'weight_decay':0.1},
-                         {'params':model.articleAwareAtten.parameters(), 'weight_decay':0.1},
+                         {"params":model.enc.parameters(), 'weight_decay':0.05},
+                         {"params":model.chargeAwareAtten.parameters(), 'weight_decay':0.05},
+                         {'params':model.articleAwareAtten.parameters(), 'weight_decay':0.05},
                          {"params":model.chargeLinear.parameters()},
                          {'params':model.chargePreds.parameters()},
                          {'params':model.articlePreds.parameters()},
                          {'params':model.penaltyPreds.parameters()}
-                         ], lr=LR, weight_decay=0.05)
+                         ], lr=LR, weight_decay=0.02)
 # optimizer = optim.Adam(model.parameters(), lr=LR, weight_decay=L2)
 # optimizer = optim.SGD(model.parameters(), lr=LR, momentum=0.9)
 

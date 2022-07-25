@@ -33,19 +33,23 @@ class TrainVector:
         self.dep_filepath = os.path.join(cur, 'train_data/dep_train.txt')
         self.word_filepath = os.path.join(cur, 'train_data/word_train.txt')
 
+        # 向量大小设置
+        self.token_size = 100
+        self.pinyin_size = 300
+        self.dep_size = 10
+        self.postag_size = 30
+        self.word_size = 300
+
+        self.epochs = 10
+
         # 向量文件所在目录
-        self.token_embedding = "../dataset/pretrain/law_token_vec_300.bin"
+        self.token_embedding = f"../dataset/pretrain/law_token_vec_{self.token_size}.bin"
         self.postag_embedding = os.path.join(cur, 'model/postag_vec_30.bin')
         self.dep_embedding = os.path.join(cur, 'model/dep_vec_10.bin')
         self.pinyin_embedding = os.path.join(cur, 'model/pinyin_vec_300.bin')
         self.word_embedding = os.path.join(cur, 'model/word_vec_300.bin')
 
-        #向量大小设置
-        self.token_size = 300
-        self.pinyin_size = 300
-        self.dep_size = 10
-        self.postag_size = 30
-        self.word_size = 300
+
 
     def readPretrainFile(self, path):
         sentences = []
@@ -58,7 +62,7 @@ class TrainVector:
     def train_vector(self, train_path, embedding_path, embedding_size):
         # sentences = word2vec.Text8Corpus(train_path)  # 加载分词语料
         sentences = self.readPretrainFile(train_path)
-        model = word2vec.Word2Vec(sentences,vector_size=embedding_size, window=5, min_count=5,workers=4)  # 训练skip-gram模型,默认window=5
+        model = word2vec.Word2Vec(sentences,vector_size=embedding_size, window=5, min_count=5,workers=4,epochs=self.epochs)  # 训练skip-gram模型,默认window=5
         model.wv.save_word2vec_format(embedding_path, binary=False)
 
 
