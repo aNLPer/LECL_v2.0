@@ -406,8 +406,8 @@ def prepare_valid_data(resourcefile, lang, input_idx, max_length, pretrained_vec
             else:
                 case_clip = case[0:int(0.3*max_length)] + case[-int(0.7*max_length):]
             seq.append(case_clip)
-            charge_labels.append(item[1])
-            article_labels.append(item[2])
+            charge_labels.append(lang.accu2index[item[1]])
+            article_labels.append(lang.art2index[item[2]])
             penaty_labels.append(item[3])
     return seq, charge_labels,  article_labels, penaty_labels
 
