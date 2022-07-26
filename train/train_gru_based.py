@@ -105,9 +105,9 @@ optimizer = optim.AdamW([{"params":model.em.parameters(), 'lr':0.00001},
 #                                             num_training_steps = STEP)
 
 scheduler = get_cosine_with_hard_restarts_schedule_with_warmup(optimizer,
-                                                               num_warmup_steps=200,
+                                                               num_warmup_steps=500,
                                                                num_training_steps=STEP,
-                                                               num_cycles=4)
+                                                               num_cycles=10)
 
 # scheduler = get_cosine_schedule_with_warmup(optimizer,
 #                                             num_warmup_steps=200,
@@ -184,9 +184,10 @@ for step in range(STEP):
     penalty_labels = torch.cat(penalty_labels, dim=0).to(device)
     penalty_preds_loss = criterion(penalty_preds_outputs, penalty_labels)
 
-    loss = ALPHA * (posi_pairs_dist - neg_pairs_dist) + \
-           charge_preds_loss + article_preds_loss+ penalty_preds_loss + \
-           LAMDA * penalty_contrains_loss
+    loss = posi_pairs_dist - neg_pairs_dist + charge_preds_loss + article_preds_loss
+    # loss = ALPHA * (posi_pairs_dist - neg_pairs_dist) + \
+    #        charge_preds_loss + article_preds_loss+ penalty_preds_loss + \
+    #        LAMDA * penalty_contrains_loss
     train_loss += loss.item()
 
     # 反向传播计算梯度
