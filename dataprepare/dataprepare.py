@@ -1,6 +1,7 @@
 # coding:utf-8
 import configparser
 import os
+import numpy as np
 import pickle
 import re
 import json
@@ -118,7 +119,7 @@ def data_filter():
         print('filter over......')
 
 # 构造数据集并获取语料库信息
-def data_process():
+def data_process(folders):
     '''
     构造数据集：[case_desc, "acc", "article","penalty"]
     # 分词
@@ -146,8 +147,9 @@ def data_process():
     for folder in folders:
         lang = Lang(folder)
         for file in file_names:
-            print(f"start processing data in folder {folder}/{file}_filtered.json")
-            fw = open(os.path.join(data_base_path, folder, f"{file}_processed.txt"), "w", encoding="utf-8")
+            print(f"start processing data {folder}/{file}_filtered.json")
+            file_path = os.path.join(data_base_path, folder, f"{file}_processed.txt")
+            fw = open(file_path, "w", encoding="utf-8")
             count = 0
             with open(os.path.join(data_base_path, folder, f"{file}_filtered.json"), "r", encoding="utf-8") as f:
                 for line in f:
@@ -242,23 +244,69 @@ def data_process():
         f.close()
 
 # 统计语料库
-def getLang(filepath, data_index, langfilename):
-    f = open("lang-CAIL-SMALL.pkl", "rb")
-    o_lang = pickle.load(f)
+def getLang(langfilename="lang-CAIL-SMALL-w.pkl", folder="CAIL-SMALL"):
+    lang_f = open(langfilename, "wb")
+    lang = Lang("small")
+    for fn in file_names:
+        print(f"processing {fn}")
+        with open(os.path.join(data_base_path, folder , f"{fn}_processed_.txt"), "r", encoding="utf-8") as f:
+            for line in f:
+                sample = json.loads(line)
+                lang.addSentence(sample[0])
+                lang.addLabel(sample[1], sample[2])
+    lang.update_label2index()
+    pickle.dump(lang, lang_f)
 
-    lang = Lang()
-    with open(filepath, "r", encoding="utf-8") as f:
-        for line in f:
-            example = json.loads(line)
-            sentence = example[data_index]
-            lang.addSentence(sentence)
-    lang.index2accu = o_lang.index2accu
-    lang.index2art = o_lang.index2art
-    lang.accu2index = o_lang.accu2index
-    lang.art2index = o_lang.art2index
-    fw = open(f"./lang-{langfilename}.pkl", "wb")
-    pickle.dump(lang, fw)
-    fw.close()
+def data_split(dataset_folder):
+    accu2case = {}
+    print("load corpus info......")
+    with open("lang-CAIL-SMALL-word-level.pkl","rb") as f:
+        lang = pickle.load(f)
+    print("load dataset......")
+    count_total = 0
+    count_long = 0
+    for fn in file_names:
+        path = os.path.join(data_base_path, dataset_folder, f"{fn}_processed.txt")
+        with open(path, "r", encoding="utf-8") as f:
+            for line in f:
+                sample = json.loads(line)
+                if len(sample[0]) > 600:
+                    count_long += 1
+                    continue
+                desc = sample[0]
+                accu = lang.index2accu[sample[2]]
+                article = lang.index2art[sample[3]]
+                penalty = sample[4]
+                count_total += 1
+                if accu not in accu2case:
+                    accu2case[accu] = [[desc, accu, article, penalty]]
+                else:
+                    accu2case[accu].append([desc, accu, article, penalty])
+    print("total sample ：",count_total)
+    keys = []
+    for key, values in accu2case.items():
+        if len(values) < 110:
+            keys.append(key)
+    print("removed accus:",keys)
+    for key in keys:
+        accu2case.pop(key)
+    train_file = open(os.path.join(data_base_path, dataset_folder, "train_processed_.txt"), "w", encoding="utf-8")
+    test_file = open(os.path.join(data_base_path, dataset_folder, "test_processed_.txt"),"w", encoding="utf-8")
+    for accu, cases in accu2case.items():
+        np.random.shuffle(cases)
+        case_num = len(cases)
+        t_n = int(0.794*case_num)
+        train_cases = cases[:t_n]
+        test_cases = cases[t_n:]
+        for case in train_cases:
+            case_str = json.dumps(case, ensure_ascii=False)
+            train_file.write(case_str+"\n")
+        for case in test_cases:
+            case_str = json.dumps(case, ensure_ascii=False)
+            test_file.write(case_str+"\n")
+    train_file.close()
+    test_file.close()
+
 
 
 
@@ -279,9 +327,10 @@ def make_accu2case_dataset(filename, lang, input_idx, accu_idx, max_length, pret
                 case_clip = case[0:int(0.3*max_length)] + case[-int(0.7*max_length):]
 
             if item[accu_idx] not in accu2case:
-                accu2case[item[accu_idx]] = [[case_clip,item[accu_idx], item[accu_idx+1], item[accu_idx+2]]]
+                accu2case[item[accu_idx]] = [[case_clip,lang.accu2index[item[accu_idx]], lang.art2index[item[accu_idx+1]], item[accu_idx+2]]]
             else:
-                accu2case[item[accu_idx]].append([case_clip,item[accu_idx], item[accu_idx+1], item[accu_idx+2]])
+                accu2case[item[accu_idx]].append([case_clip,lang.accu2index[item[accu_idx]], lang.art2index[item[accu_idx+1]], item[accu_idx+2]])
+
     return accu2case
 
 def word2Index(file_path, lang, acc2id):
@@ -420,7 +469,9 @@ def val_test_datafilter(resourcefile, targetflie):
 
 
 if __name__=="__main__":
-    # pass
+    pass
+    # data_split("CAIL-SMALL")
+    # getLang()
     # 过滤原始数据集
     # data_filter()
 
@@ -436,9 +487,9 @@ if __name__=="__main__":
     # 统计训练集语料库生成对象
     # lang_name = "2018_CAIL_SMALL_TRAIN"
     # getLang(lang_name)
-    f = open("lang-CAIL-SMALL-word-level.pkl", "rb")
-    lang = pickle.load(f)
-    print("end")
+    # f = open("lang-CAIL-SMALL-w.pkl", "rb")
+    # lang = pickle.load(f)
+    # print("end")
     # print(lang.n_words)
     # print(lang.word2index['我'])
 

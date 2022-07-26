@@ -38,8 +38,9 @@ DROPOUT_RATE = float(config.get(section, "DROPOUT_RATE"))
 L2 = float(config.get(section, "L2"))
 
 
-corpus_info_path = "../dataprepare/lang-CAIL-SMALL-word-level.pkl"
-data_path = "../dataset/CAIL-SMALL/train_processed.txt"
+corpus_info_path = "../dataprepare/lang-CAIL-SMALL-w.pkl"
+train_data_path = "../dataset/CAIL-SMALL/train_processed_.txt"
+valid_data_path = "../dataset/CAIL-SMALL/test_processed_.txt"
 accu_similarity = "../dataprepare/accusation_classified_v2_2.txt"
 
 print("load corpus info")
@@ -51,7 +52,7 @@ print("load pretrained word2vec")
 pretrained_model = gensim.models.KeyedVectors.load_word2vec_format(f'../dataset/pretrain/law_token_vec_{HIDDEN_SIZE}.bin', binary=False)
 
 print("load dataset classified by accusation")
-accu2case = make_accu2case_dataset(data_path, lang=lang, input_idx=0, accu_idx=2, max_length=MAX_LENGTH, pretrained_vec=pretrained_model)
+accu2case = make_accu2case_dataset(train_data_path, lang=lang, input_idx=0, accu_idx=1, max_length=MAX_LENGTH, pretrained_vec=pretrained_model)
 
 print("load accusation similarity sheet")
 category2accu, accu2category = load_classifiedAccus(accu_similarity)
@@ -211,7 +212,7 @@ for step in range(STEP):
         valid_loss = 0
         val_step = 0
         valid_seq, valid_charge_labels, valid_article_labels, valid_penalty_labels = \
-            prepare_valid_data("../dataset/CAIL-SMALL/test_processed.txt", lang,input_idx=0, max_length=MAX_LENGTH, pretrained_vec=pretrained_model)
+            prepare_valid_data(valid_data_path, lang,input_idx=0, max_length=MAX_LENGTH, pretrained_vec=pretrained_model)
 
         for val_seq, val_charge_label, val_article_label, val_penalty_label in data_loader(valid_seq, valid_charge_labels, valid_article_labels, valid_penalty_labels, batch_size=4*BATCH_SIZE):
             val_seq_lens = [len(s) for s in val_seq]

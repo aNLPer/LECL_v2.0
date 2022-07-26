@@ -15,11 +15,11 @@ class Lang:
     # 语料库对象
     def __init__(self, name="corpus"):
         self.name = name
-        self.word2index = {"PAD":0, "UNK":1}
+        self.word2index = {"PAD":0}
         self.word2count = {}
-        self.index2word = {0:"PAD", 1:"UNK"}
+        self.index2word = {0:"PAD"}
         # 词汇表大小
-        self.n_words = 2
+        self.n_words = 1
 
         self.index2accu = []
         self.accu2index = None
@@ -281,7 +281,6 @@ def contras_data_loader(accu2case,
     while count<sim_accu_num-1:
         for accu in sample_accus:
             # 获取相似指控
-            accu = lang.index2accu[accu]
             sim_accu_ = [category2accu[c] for c in accu2category[accu]]
             temp = []
             for l in sim_accu_:
@@ -408,9 +407,9 @@ def prepare_valid_data(resourcefile, lang, input_idx, max_length, pretrained_vec
             else:
                 case_clip = case[0:int(0.3*max_length)] + case[-int(0.7*max_length):]
             seq.append(case_clip)
-            charge_labels.append(item[2])
-            article_labels.append(item[3])
-            penaty_labels.append(item[4])
+            charge_labels.append(item[1])
+            article_labels.append(item[2])
+            penaty_labels.append(item[3])
     return seq, charge_labels,  article_labels, penaty_labels
 
 def check_data(lang, seq, c_label, a_label, p_label):

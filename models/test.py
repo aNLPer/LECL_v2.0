@@ -2,5 +2,6 @@ import torch
 import json
 import torch.nn.functional as F
 
-a = [1,2,3,4,5]
-print(a[-3:])
+d = {1:1, 2:2}
+d.pop(1)
+print(d.items())
