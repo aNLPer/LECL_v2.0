@@ -159,6 +159,7 @@ def data_process(folders):
 
                     # 过滤law article内容
                     example_fact = Law.filterStr(example["fact"])
+
                     if folder == "CAIL-LARGE":
                         example_fact = example_fact.strip()
                         pattern = re.compile(r"\n")
@@ -185,17 +186,15 @@ def data_process(folders):
 
                     # 去除标点
                     example_fact_seg = [word for word in example_fact_seg if word not in punctuations]
-
-                    item.append("".join(example_fact_seg))
-
-                    # 去除停用词
-                    example_fact_seg = [word for word in example_fact_seg if word not in stopwords]
-
+                    example_fact_seg = "".join(example_fact_seg)
                     # 删除过短文本
                     if len(example_fact_seg) < 10:
                         continue
 
                     item.append(example_fact_seg)
+
+                    # 去除停用词
+                    # example_fact_seg = [word for word in example_fact_seg if word not in stopwords]
 
                     # 统计训练数据集语料信息
                     if file == "train":
@@ -208,8 +207,8 @@ def data_process(folders):
                     example_art = example["meta"]['relevant_articles'][0]
                     lang.addLabel(example_accu, example_art)
                     lang.update_label2index()
-                    item.append(lang.accu2index[example_accu])
-                    item.append(lang.art2index[example_art])
+                    item.append(example_accu)
+                    item.append(example_art)
                     example_penalty = example["meta"]["term_of_imprisonment"]
                     if (example_penalty["death_penalty"] == True or example_penalty["life_imprisonment"] == True):
                         item.append(0)
@@ -239,7 +238,7 @@ def data_process(folders):
                     if count%5000==0:
                         print(f"已有{count}条数据被处理")
             fw.close()
-        f = open(f"./lang-{folder}.pkl", "wb")
+        f = open(f"./lang-{folder}-W(new).pkl", "wb")
         pickle.dump(lang, f)
         f.close()
 
@@ -256,6 +255,7 @@ def getLang(langfilename="lang-CAIL-SMALL-w.pkl", folder="CAIL-SMALL"):
                 lang.addLabel(sample[1], sample[2])
     lang.update_label2index()
     pickle.dump(lang, lang_f)
+    lang_f.close()
 
 def data_split(dataset_folder):
     accu2case = {}
@@ -306,9 +306,6 @@ def data_split(dataset_folder):
             test_file.write(case_str+"\n")
     train_file.close()
     test_file.close()
-
-
-
 
 def make_accu2case_dataset(filename, lang, input_idx, accu_idx, max_length, pretrained_vec=None):
     accu2case = {}
@@ -468,8 +465,10 @@ def val_test_datafilter(resourcefile, targetflie):
     print("processing end ......")
 
 
+
 if __name__=="__main__":
-    pass
+    # pass
+    data_process(["CAIL-LARGE"])
     # data_split("CAIL-SMALL")
     # getLang()
     # 过滤原始数据集
@@ -489,6 +488,10 @@ if __name__=="__main__":
     # getLang(lang_name)
     # f = open("lang-CAIL-SMALL-w.pkl", "rb")
     # lang = pickle.load(f)
+    # f.close()
+    # f = open("lang-CAIL-SMALL-W(new).pkl", "rb")
+    # lang_new = pickle.load(f)
+    # f.close()
     # print("end")
     # print(lang.n_words)
     # print(lang.word2index['我'])

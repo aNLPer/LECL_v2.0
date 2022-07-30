@@ -12,7 +12,7 @@ logging.basicConfig(format='%(asctime)s:%(levelname)s:%(message)s', level=loggin
 def data_pre():
     base_path = "../dataset"
     folders = ["CAIL-SMALL","CAIL-LARGE"]
-    filenames = ["test_processed.txt", "train_processed.txt"]
+    filenames = ["train_processed_.txt"]
     pretrainfile = open(os.path.join(base_path, "pretrain", "pretrain.txt"), "w", encoding="utf-8")
     for fd in folders:
         for fn in filenames:
@@ -106,6 +106,7 @@ class TrainVector:
         return
 
 if __name__ == '__main__':
-    handler = TrainVector()
-    handler.train_main()
+    data_pre()
+    # handler = TrainVector()
+    # handler.train_main()
 

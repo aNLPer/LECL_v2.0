@@ -40,13 +40,13 @@ NUM_CYCLES = int(config.get(section, "NUM_CYCLES"))
 DATA = config.get(section, "DATA")
 
 if DATA == "SMALL":
-    corpus_info_path = "../dataprepare/lang-CAIL-SMALL-w.pkl"
+    corpus_info_path = "../dataprepare/lang-CAIL-SMALL-W(new).pkl"
     train_data_path = "../dataset/CAIL-SMALL/train_processed_.txt"
     valid_data_path = "../dataset/CAIL-SMALL/test_processed_.txt"
-if DATA == "BIG":
-    corpus_info_path = "../dataprepare/lang-CAIL-SMALL-w.pkl"
-    train_data_path = "../dataset/CAIL-SMALL/train_processed_.txt"
-    valid_data_path = "../dataset/CAIL-SMALL/test_processed_.txt"
+if DATA == "LARGE":
+    corpus_info_path = "../dataprepare/lang-CAIL-LARGE-W(new).pkl"
+    train_data_path = "../dataset/CAIL-LARGE/train_processed_.txt"
+    valid_data_path = "../dataset/CAIL-LARGE/test_processed_.txt"
 
 accu_similarity = "../dataprepare/accusation_classified_v2_2.txt"
 
@@ -60,6 +60,7 @@ pretrained_model = gensim.models.KeyedVectors.load_word2vec_format(f'../dataset/
 
 print("load dataset classified by accusation")
 accu2case = make_accu2case_dataset(train_data_path, lang=lang, input_idx=0, accu_idx=1, max_length=MAX_LENGTH, pretrained_vec=pretrained_model)
+
 
 print("load accusation similarity sheet")
 category2accu, accu2category = load_classifiedAccus(accu_similarity)
@@ -223,7 +224,7 @@ for step in range(STEP):
         valid_seq, valid_charge_labels, valid_article_labels, valid_penalty_labels = \
             prepare_valid_data(valid_data_path, lang,input_idx=0, max_length=MAX_LENGTH, pretrained_vec=pretrained_model)
 
-        for val_seq, val_charge_label, val_article_label, val_penalty_label in data_loader(valid_seq, valid_charge_labels, valid_article_labels, valid_penalty_labels, batch_size=4*BATCH_SIZE):
+        for val_seq, val_charge_label, val_article_label, val_penalty_label in data_loader(valid_seq, valid_charge_labels, valid_article_labels, valid_penalty_labels, batch_size=100*BATCH_SIZE):
             val_seq_lens = [len(s) for s in val_seq]
             val_input_ids = [torch.tensor(s) for s in val_seq]
             val_input_ids = pad_sequence(val_input_ids, batch_first=True).to(device)
