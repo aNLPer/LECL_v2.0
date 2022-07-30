@@ -39,6 +39,8 @@ L2 = float(config.get(section, "L2"))
 NUM_CYCLES = int(config.get(section, "NUM_CYCLES"))
 DATA = config.get(section, "DATA")
 
+print(f"Starting training on CAIL-{DATA}")
+
 if DATA == "SMALL":
     corpus_info_path = "../dataprepare/lang-CAIL-SMALL-W(new).pkl"
     train_data_path = "../dataset/CAIL-SMALL/train_processed_.txt"
