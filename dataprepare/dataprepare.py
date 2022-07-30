@@ -257,31 +257,34 @@ def getLang(langfilename="lang-CAIL-SMALL-w.pkl", folder="CAIL-SMALL"):
     pickle.dump(lang, lang_f)
     lang_f.close()
 
-def data_split(dataset_folder):
+def data_split(dataset_folder, mode="analyse"):
     accu2case = {}
-    print("load corpus info......")
-    with open("lang-CAIL-SMALL-word-level.pkl","rb") as f:
-        lang = pickle.load(f)
     print("load dataset......")
     count_total = 0
     count_long = 0
     for fn in file_names:
-        path = os.path.join(data_base_path, dataset_folder, f"{fn}_processed.txt")
+        path = os.path.join(data_base_path, dataset_folder, f"{fn}_processed_.txt")
         with open(path, "r", encoding="utf-8") as f:
             for line in f:
                 sample = json.loads(line)
-                if len(sample[0]) > 600:
-                    count_long += 1
-                    continue
+                # if len(sample[0]) > 600:
+                #     count_long += 1
+                #     continue
                 desc = sample[0]
-                accu = lang.index2accu[sample[2]]
-                article = lang.index2art[sample[3]]
-                penalty = sample[4]
+                accu = sample[1]
+                article = sample[2]
+                penalty = sample[3]
                 count_total += 1
                 if accu not in accu2case:
-                    accu2case[accu] = [[desc, accu, article, penalty]]
+                    if mode == "analyse":
+                        accu2case[accu] = 1
+                    if mode == "split":
+                        accu2case[accu] = [[desc, accu, article, penalty]]
                 else:
-                    accu2case[accu].append([desc, accu, article, penalty])
+                    if mode == "analyse":
+                        accu2case[accu] += 1
+                    if mode == "split":
+                        accu2case[accu].append([desc, accu, article, penalty])
     print("total sample ：",count_total)
     keys = []
     for key, values in accu2case.items():
@@ -290,8 +293,8 @@ def data_split(dataset_folder):
     print("removed accus:",keys)
     for key in keys:
         accu2case.pop(key)
-    train_file = open(os.path.join(data_base_path, dataset_folder, "train_processed_.txt"), "w", encoding="utf-8")
-    test_file = open(os.path.join(data_base_path, dataset_folder, "test_processed_.txt"),"w", encoding="utf-8")
+    train_file = open(os.path.join(data_base_path, dataset_folder, "train_processed_sp.txt"), "w", encoding="utf-8")
+    test_file = open(os.path.join(data_base_path, dataset_folder, "test_processed_sp.txt"),"w", encoding="utf-8")
     for accu, cases in accu2case.items():
         np.random.shuffle(cases)
         case_num = len(cases)
@@ -468,8 +471,8 @@ def val_test_datafilter(resourcefile, targetflie):
 
 if __name__=="__main__":
     # pass
-    data_process(["CAIL-LARGE"])
-    # data_split("CAIL-SMALL")
+    # data_process(["CAIL-LARGE"])
+    # data_split("CAIL-LARGE")
     # getLang()
     # 过滤原始数据集
     # data_filter()
@@ -486,13 +489,13 @@ if __name__=="__main__":
     # 统计训练集语料库生成对象
     # lang_name = "2018_CAIL_SMALL_TRAIN"
     # getLang(lang_name)
-    # f = open("lang-CAIL-SMALL-w.pkl", "rb")
-    # lang = pickle.load(f)
-    # f.close()
+    f = open("lang-CAIL-LARGE-W(new).pkl", "rb")
+    lang = pickle.load(f)
+    f.close()
     # f = open("lang-CAIL-SMALL-W(new).pkl", "rb")
     # lang_new = pickle.load(f)
     # f.close()
-    # print("end")
+    print("end")
     # print(lang.n_words)
     # print(lang.word2index['我'])
 
