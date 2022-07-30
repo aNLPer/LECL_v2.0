@@ -34,7 +34,7 @@ class TrainVector:
         self.word_filepath = os.path.join(cur, 'train_data/word_train.txt')
 
         # 向量大小设置
-        self.token_size = 512
+        self.token_size = 300
         self.pinyin_size = 300
         self.dep_size = 10
         self.postag_size = 30

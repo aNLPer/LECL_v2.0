@@ -48,7 +48,7 @@ if DATA == "LARGE":
     train_data_path = "../dataset/CAIL-LARGE/train_processed_.txt"
     valid_data_path = "../dataset/CAIL-LARGE/test_processed_.txt"
 accu_similarity = "../dataprepare/accusation_classified_v2_2.txt"
-pretrain_w2v = f'../dataset/pretrain/law_token_vec_{HIDDEN_SIZE}.bin'
+pretrain_lm = f'../dataset/pretrain/law_token_vec_{HIDDEN_SIZE}.bin'
 
 
 print("load corpus info")
@@ -57,7 +57,7 @@ lang = pickle.load(f)
 f.close()
 
 print("load pretrained word2vec")
-pretrained_model = gensim.models.KeyedVectors.load_word2vec_format(pretrain_w2v, binary=False)
+pretrained_model = gensim.models.KeyedVectors.load_word2vec_format(pretrain_lm, binary=False)
 
 print("load dataset classified by accusation")
 accu2case = make_accu2case_dataset(train_data_path, lang=lang, input_idx=0, accu_idx=1, max_length=MAX_LENGTH, pretrained_vec=pretrained_model)
