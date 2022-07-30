@@ -36,11 +36,18 @@ ALPHA = float(config.get(section, "ALPHA")) #
 GRU_LAYERS = int(config.get(section, 'GRU_LAYERS'))
 DROPOUT_RATE = float(config.get(section, "DROPOUT_RATE"))
 L2 = float(config.get(section, "L2"))
+NUM_CYCLES = int(config.get(section, "NUM_CYCLES"))
+DATA = config.get(section, "DATA")
 
+if DATA == "SMALL":
+    corpus_info_path = "../dataprepare/lang-CAIL-SMALL-w.pkl"
+    train_data_path = "../dataset/CAIL-SMALL/train_processed_.txt"
+    valid_data_path = "../dataset/CAIL-SMALL/test_processed_.txt"
+if DATA == "BIG":
+    corpus_info_path = "../dataprepare/lang-CAIL-SMALL-w.pkl"
+    train_data_path = "../dataset/CAIL-SMALL/train_processed_.txt"
+    valid_data_path = "../dataset/CAIL-SMALL/test_processed_.txt"
 
-corpus_info_path = "../dataprepare/lang-CAIL-SMALL-w.pkl"
-train_data_path = "../dataset/CAIL-SMALL/train_processed_.txt"
-valid_data_path = "../dataset/CAIL-SMALL/test_processed_.txt"
 accu_similarity = "../dataprepare/accusation_classified_v2_2.txt"
 
 print("load corpus info")
@@ -80,9 +87,9 @@ criterion = nn.CrossEntropyLoss()
 # optimizer = AdamW(model.parameters(), lr=LR, weight_decay=L2)
 # optimizer = optim.AdamW(model.parameters(), lr=LR, weight_decay=0.05)
 optimizer = optim.AdamW([{"params":model.em.parameters(), 'lr':0.00001},
-                         {"params":model.enc.parameters(), 'weight_decay':0.05},
-                         {"params":model.chargeAwareAtten.parameters(), 'weight_decay':0.05},
-                         {'params':model.articleAwareAtten.parameters(), 'weight_decay':0.05},
+                         {"params":model.enc.parameters(), 'weight_decay':0.07},
+                         {"params":model.chargeAwareAtten.parameters(), 'weight_decay':0.07},
+                         {'params':model.articleAwareAtten.parameters(), 'weight_decay':0.07},
                          {"params":model.chargeLinear.parameters()},
                          {'params':model.chargePreds.parameters()},
                          {'params':model.articlePreds.parameters()},
@@ -107,7 +114,8 @@ optimizer = optim.AdamW([{"params":model.em.parameters(), 'lr':0.00001},
 scheduler = get_cosine_with_hard_restarts_schedule_with_warmup(optimizer,
                                                                num_warmup_steps=500,
                                                                num_training_steps=STEP,
-                                                               num_cycles=4)
+                                                               num_cycles=NUM_CYCLES)
+
 
 # scheduler = get_cosine_schedule_with_warmup(optimizer,
 #                                             num_warmup_steps=200,
@@ -128,7 +136,7 @@ for step in range(STEP):
     start = timer()
     seqs, accu_labels, article_labels, penalty_labels = contras_data_loader(accu2case=accu2case,
                                                                             isremove = False,
-                                                                            batch_size=BATCH_SIZE,
+                                                                            batch_size = BATCH_SIZE,
                                                                             lang=lang,
                                                                             positive_size=POSITIVE_SIZE,
                                                                             sim_accu_num=SIM_ACCU_NUM,
