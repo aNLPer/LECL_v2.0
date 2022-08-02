@@ -288,7 +288,7 @@ def data_split(dataset_folder, mode="analyse"):
     print("total sample ：",count_total)
     keys = []
     for key, values in accu2case.items():
-        if len(values) < 110:
+        if len(values) < 135:
             keys.append(key)
     print("removed accus:",keys)
     for key in keys:
@@ -298,7 +298,7 @@ def data_split(dataset_folder, mode="analyse"):
     for accu, cases in accu2case.items():
         np.random.shuffle(cases)
         case_num = len(cases)
-        t_n = int(0.794*case_num)
+        t_n = int(0.88*case_num)
         train_cases = cases[:t_n]
         test_cases = cases[t_n:]
         for case in train_cases:
@@ -472,7 +472,7 @@ def val_test_datafilter(resourcefile, targetflie):
 if __name__=="__main__":
     # pass
     # data_process(["CAIL-LARGE"])
-    # data_split("CAIL-LARGE")
+    data_split("CAIL-LARGE", mode="split")
     # getLang()
     # 过滤原始数据集
     # data_filter()
@@ -489,13 +489,13 @@ if __name__=="__main__":
     # 统计训练集语料库生成对象
     # lang_name = "2018_CAIL_SMALL_TRAIN"
     # getLang(lang_name)
-    f = open("lang-CAIL-LARGE-W(new).pkl", "rb")
-    lang = pickle.load(f)
-    f.close()
+    # f = open("lang-CAIL-LARGE-W(new).pkl", "rb")
+    # lang = pickle.load(f)
+    # f.close()
     # f = open("lang-CAIL-SMALL-W(new).pkl", "rb")
     # lang_new = pickle.load(f)
     # f.close()
-    print("end")
+    # print("end")
     # print(lang.n_words)
     # print(lang.word2index['我'])
 

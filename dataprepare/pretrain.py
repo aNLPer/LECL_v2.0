@@ -40,7 +40,7 @@ class TrainVector:
         self.postag_size = 30
         self.word_size = 300
 
-        self.epochs = 10
+        self.epochs = 5
 
         # 向量文件所在目录
         self.token_embedding = f"../dataset/pretrain/law_token_vec_{self.token_size}.bin"
@@ -106,7 +106,7 @@ class TrainVector:
         return
 
 if __name__ == '__main__':
-    data_pre()
-    # handler = TrainVector()
-    # handler.train_main()
+    # data_pre()
+    handler = TrainVector()
+    handler.train_main()
 
